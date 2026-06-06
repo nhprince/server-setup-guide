@@ -128,6 +128,44 @@ Throughout this guide, you'll see this icon 🤖 — it means you can skip the m
 
 ---
 
+## 🏗️ Build Projects with Saturday Framework
+
+> **Saturday is the official framework** for building projects with this setup. Once your agent is running, Saturday handles everything from scaffold to deploy.
+
+### ✨ Why Saturday?
+
+| Feature | Benefit |
+|---------|---------|
+| **1-Command Setup** | `"Build me a blog called my-blog"` → full project |
+| **100% Free Infrastructure** | Uses Cloudflare free tier + GitHub Actions |
+| **Dark Theme UI** | Glassmorphism cards, gradient accents, micro-animations |
+| **Agent-Driven Workflow** | Saturday does the work, you just approve |
+| **VPS Fallback** | Dual-deploy to Cloudflare or your VPS |
+
+### Quick Start with Saturday
+
+```bash
+# Tell Saturday what to build:
+"Build me a blog called my-blog"
+"Create a SaaS called tiny-tools"
+"Make a portfolio site"
+"Build an API for my app"
+```
+
+Saturday handles: scaffold → configure → deploy → verify. All on 100% free infrastructure.
+
+### How Saturday + This Guide Work Together
+
+```
+1. Follow this guide → Set up your AI agent (Saturday) on a free VPS
+2. Use Saturday → Build projects with 100% free infrastructure
+3. Deploy → Cloudflare (default) or VPS (fallback)
+```
+
+[→ Saturday Framework on GitHub](https://github.com/nhprince/saturday) | [→ Saturday Dashboard](https://saturday.pages.dev)
+
+---
+
 1. [Initial Server Setup](#1-initial-server-setup)
 2. [Install Hermes Agent (Saturday)](#2-install-hermes-agent-saturday)
 3. [Setup Messaging Platforms](#3-setup-messaging-platforms)
@@ -506,7 +544,7 @@ Save these for later use:
 
 ## 8. Create Project Template
 
-> **🤖 Agent Tip:** Just say *"Create a new full-stack project called [name] with Next.js frontend and Hono backend"* — Saturday will scaffold the entire project, set up the workspace, and push to GitHub.
+> **🤖 Agent Tip:** Just say *"Create a new full-stack project called [name] with Next.js frontend and Hono backend"* — Saturday will scaffold the entire project, set up the workspace, and push to GitHub. For project types (blog, SaaS, portfolio, etc.), use the [Saturday Framework](https://github.com/nhprince/saturday) scaffolds.
 
 ### 8.1 Scaffold Structure
 
