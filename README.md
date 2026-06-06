@@ -325,6 +325,8 @@ Follow the prompts during `hermes setup` to configure these platforms.
 
 ## 5. Server Cleanup & Optimization
 
+> **🤖 Agent Tip:** Just say *"Clean up my server and free up RAM"* — Saturday will remove unused services, tune MariaDB, and optimize everything automatically.
+
 ### 5.1 Remove Unused PHP Versions
 
 HestiaCP installs multiple PHP-FPM versions. Keep only what you need:
@@ -392,6 +394,8 @@ sudo systemctl restart mariadb
 
 ## 6. Install Development Tools
 
+> **🤖 Agent Tip:** Just say *"Install all development tools — Node.js, pnpm, Bun, PM2, TypeScript, Wrangler, and GitHub CLI"* — Saturday will install and configure everything.
+
 ### 6.1 Node.js Ecosystem
 
 ```bash
@@ -442,6 +446,8 @@ source ~/.bashrc
 
 ## 7. Configure Cloudflare
 
+> **🤖 Agent Tip:** Just say *"Set up Cloudflare — create KV namespace, D1 database, and Pages project for my project"* — Saturday will authenticate, create all resources, and save the IDs.
+
 ### 7.1 Create Cloudflare Account
 
 1. Go to [dash.cloudflare.com/sign-up](https://dash.cloudflare.com/sign-up)
@@ -491,6 +497,8 @@ Save these for later use:
 ---
 
 ## 8. Create Project Template
+
+> **🤖 Agent Tip:** Just say *"Create a new full-stack project called [name] with Next.js frontend and Hono backend"* — Saturday will scaffold the entire project, set up the workspace, and push to GitHub.
 
 ### 8.1 Scaffold Structure
 
@@ -616,6 +624,8 @@ packages:
 
 ## 9. GitHub Actions CI/CD
 
+> **🤖 Agent Tip:** Just say *"Set up auto-deploy to Cloudflare on every git push"* — Saturday will create the GitHub Actions workflow, add all secrets, and configure the dual-deploy pipeline.
+
 ### 9.1 Create Workflow
 
 **.github/workflows/deploy.yml:**
@@ -718,6 +728,8 @@ ssh-keygen -t ed25519 -C "your-email" -f ~/.ssh/id_ed25519
 
 ## 10. Daily Greeting Cron Job
 
+> **🤖 Agent Tip:** Just say *"Set up a daily morning greeting that sends different messages to me on Telegram"* — Saturday will create the script and schedule the cron job.
+
 ### 10.1 Create Greeting Script
 
 **~/.hermes/scripts/greeting.sh:**
@@ -757,7 +769,9 @@ chmod +x ~/.hermes/scripts/greeting.sh
 
 ## 11. Free Web Search
 
-### 11.1 DuckDuckGo HTML Scraping (No API Key)
+> **🤖 Agent Tip:** You don't need to set this up manually. Just ask Saturday *"search for [anything]"* — it already has free web search built in via DuckDuckGo.
+
+### 11.1 How It Works
 
 **~/.hermes/scripts/web_search.py:**
 
@@ -815,6 +829,8 @@ chmod +x ~/.hermes/scripts/web_search.py
 ---
 
 ## 12. Troubleshooting
+
+> **🤖 Agent Tip:** Instead of debugging manually, just tell Saturday *"The gateway won't start"* or *"My deployment is failing"* — it will diagnose and fix the issue for you.
 
 ### 12.1 Gateway Won't Start
 
@@ -886,9 +902,8 @@ Apply at [education.github.com/pack](https://education.github.com/pack) — it's
 
 | Benefit | Value | Link |
 |---------|-------|------|
-| **Microsoft Azure** | **$100-200 credits** — can run your VPS for free! | azure.com |
+| **Microsoft Azure** | **$100 credits** — can run your VPS for free! | azure.com |
 | **DigitalOcean** | **$200 credits for 60 days** | digitalocean.com |
-| **Oracle Cloud** | **$300 credits for 30 days** — ARM instances (very powerful!) | oracle.com/cloud |
 | **Heroku** | **$13/month for 24 months** ($312 total) | heroku.com |
 | **GitHub Copilot** | **Free Pro tier** — AI code completion | github.com/features/copilot |
 | **GitHub Codespaces** | **Free Pro** — cloud dev environment (60 hrs/month) | github.com/codespaces |
@@ -907,11 +922,10 @@ Apply at [education.github.com/pack](https://education.github.com/pack) — it's
 
 1. **Azure $100 credits** → Run your VPS for free (the one thing that costs money!)
 2. **DigitalOcean $200** → Staging server or database hosting
-3. **Oracle Cloud $300** → Powerful ARM instances for heavy workloads
-4. **JetBrains WebStorm** → Best TypeScript/React IDE, free for students
-5. **GitHub Copilot** → AI pair programmer while coding
-6. **Namecheap domain** → Professional domain for your portfolio
-7. **GitHub Cert** → Get certified for free, boosts your resume
+3. **JetBrains WebStorm** → Best TypeScript/React IDE, free for students
+4. **GitHub Copilot** → AI pair programmer while coding
+5. **Namecheap domain** → Professional domain for your portfolio
+6. **GitHub Cert** → Get certified for free, boosts your resume
 
 > **💡 With student credits, the entire setup can be $0/month — including the VPS!**
 
