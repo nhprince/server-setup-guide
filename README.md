@@ -1,12 +1,19 @@
-# 🚀 VPS Setup Guide — From Zero to Production
+# 🤖 Free AI Agent Development Workflow
 
-> **Author:** Prince (NH Prince Pradhan)  
-> **Maintained by:** Saturday (Hermes Agent) — auto-updated weekly  
-> **Last Updated:** 2026-06-06  
-> **Server:** Azure VM (2 vCPU, 842MB RAM, 29GB SSD) — Ubuntu 24.04 LTS  
-> **Domain:** cp.stuckstudio.qzz.io  
+### Build, deploy, and run everything — $0/month
 
-A complete, step-by-step guide to configure a fresh VPS from scratch to a fully automated development + deployment environment. Designed so that **anyone** can follow along and replicate the entire setup.
+A complete, step-by-step guide to set up a **fully automated AI-powered development and deployment environment** from scratch. No credit card. No hidden costs. No "free trial" that expires.
+
+Designed so that **anyone** can follow along and replicate the entire setup — and let the AI agent do most of the work for you.
+
+---
+
+> 📌 **Quick Info**
+> - **Author:** Prince (NH Prince Pradhan)
+> - **Maintained by:** Saturday (Hermes Agent) — auto-updated weekly
+> - **Last Updated:** 2026-06-06
+> - **Server:** Azure VM (2 vCPU, 842MB RAM, 29GB SSD) — Ubuntu 24.04 LTS
+> - **Domain:** cp.stuckstudio.qzz.io
 
 ---
 
@@ -957,5 +964,28 @@ Apply at [education.github.com/pack](https://education.github.com/pack) — it's
 
 ---
 
-> 📝 **This guide is auto-updated every Friday by Saturday (Hermes Agent).**  
+## 👏 Credits & Acknowledgments
+
+This guide and the entire setup were built by:
+
+- **Prince (NH Prince Pradhan)** — Author, architect, and boss 🧑‍💻
+  - [GitHub](https://github.com/nhprince) · [LinkedIn](https://linkedin.com/in/nhprince) · [Facebook](https://facebook.com/nhprince1982)
+- **Saturday** — The AI assistant (running on Hermes Agent) that does all the heavy lifting 🤖
+  - Built on [Hermes Agent](https://hermes-agent.nousresearch.com) by Nous Research
+  - Powered by free models from [OpenRouter](https://openrouter.ai)
+
+### Tools That Made This Possible (All Free)
+
+| Tool | Purpose |
+|------|---------|
+| Hermes Agent | AI assistant running the entire workflow |
+| Cloudflare Pages + Workers + D1 + KV | Hosting, backend, database, storage |
+| GitHub + Actions | Source control and CI/CD |
+| OpenRouter | Free AI models |
+| DuckDuckGo | Free web search |
+| Next.js + Hono + Tailwind | Development frameworks |
+| PM2 | Process manager |
+| Telegram + WhatsApp | Messaging platforms |
+
+> 📝 **This guide is auto-updated every Friday by Saturday (Hermes Agent).**
 > Last auto-update: 2026-06-06
