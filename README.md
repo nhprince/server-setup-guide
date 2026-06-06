@@ -39,13 +39,13 @@ This entire stack costs **$0/month** in infrastructure (excluding the VPS for th
 
 | Item | Cost |
 |------|------|
-| VPS (for AI agent) | ~$5-10/month (or free with Oracle Cloud / Azure credits) |
+| VPS (for AI agent) | **$0** (Azure for Students / Oracle Cloud free tier) |
 | Cloudflare (Pages + Workers + D1 + KV + R2) | **$0** |
 | GitHub (Repos + Actions) | **$0** |
 | OpenRouter (free models) | **$0** |
 | Messaging (Telegram + WhatsApp) | **$0** |
 | Development tools | **$0** |
-| **TOTAL** | **$0/month for everything except the VPS** |
+| **TOTAL** | **$0/month — absolutely everything free!** |
 
 ### 🎯 The Philosophy
 
@@ -69,11 +69,63 @@ This entire stack costs **$0/month** in infrastructure (excluding the VPS for th
 └─────────────────────────────────────────────────────────┘
 ```
 
-> **💡 Pro Tip:** If you're a student, the [GitHub Student Developer Pack](https://education.github.com/pack) gives you **$100 Azure credits**, **$200 DigitalOcean credits**, **$300 Oracle Cloud credits**, and more — meaning even the VPS can be **completely free**!
+> **💡 Pro Tip:** If you're a student, the [GitHub Student Developer Pack](https://education.github.com/pak) gives you **$100 Azure credits**, **$200 DigitalOcean credits**, **$300 Oracle Cloud credits**, and more — meaning even the VPS can be **completely free**!
+
+### 🆓 How to Get a FREE VPS (No Credit Card Needed)
+
+> **Yes, you can run this entire setup for $0/month — including the VPS!**
+
+#### Option 1: Azure for Students (Recommended)
+
+1. Go to [azure.microsoft.com/en-us/free/students](https://azure.microsoft.com/en-us/free/students)
+2. Click **"Start Free"**
+3. Sign in with your **school email** (or verify student status with GitHub)
+4. **No credit card required!**
+5. You get **$100 in Azure credits** + free services for 12 months
+6. Create a VM: **B1s tier** (1 vCPU, 1GB RAM) — **free for 750 hours/month**
+7. That's enough to run your AI agent 24/7 for free!
+
+#### Option 2: Oracle Cloud Free Tier
+
+1. Go to [oracle.com/cloud/free](https://www.oracle.com/cloud/free/)
+2. Sign up with any email
+3. **No credit card required for free tier!**
+4. Get **4 ARM-based VMs** (up to 24GB RAM total) — **forever free**
+5. More powerful than Azure's free tier
+
+#### Option 3: GitHub Student Pack Credits
+
+1. Apply at [education.github.com/pack](https://education.github.com/pak)
+2. Once approved, you get:
+   - **$100 Azure credits** (on top of student credits!)
+   - **$200 DigitalOcean credits** for 60 days
+   - **$300 Oracle Cloud credits** for 30 days
+   - **$13/month Heroku** for 24 months
+3. Use any of these to host your VPS for free
+
+> **💡 Best combo:** Azure for Students ($100, no CC) + GitHub Student Pack ($100 more) = **$200 in free cloud credits!**
 
 ---
 
-## 📋 Table of Contents
+## 🤖 Let the Agent Do the Heavy Lifting
+
+> **This guide shows you what's happening under the hood. But in practice, you can just ask Saturday (your AI agent) to do all of this for you.**
+
+Throughout this guide, you'll see this icon 🤖 — it means you can skip the manual steps and just tell the agent:
+
+| Instead of... | Just say... |
+|---------------|-------------|
+| Manually editing `config.yaml` | "Add all free OpenRouter models as fallbacks" |
+| Creating Cloudflare resources | "Set up Cloudflare Pages and Workers for my project" |
+| Writing GitHub Actions YAML | "Create a CI/CD pipeline that auto-deploys to Cloudflare" |
+| Configuring nginx/PM2 | "Set up nginx reverse proxy for my app" |
+| Writing cron scripts | "Set up a daily cron job that does X" |
+| Installing dev tools | "Install Node.js, pnpm, Bun, and PM2" |
+| Setting up the whole project | "Create a new full-stack project with Next.js and Hono" |
+
+**The agent handles all complex configs, YAML files, CI/CD pipelines, and infrastructure setup automatically.** This guide is here so you understand what's happening — but you don't have to do it manually.
+
+---
 
 1. [Initial Server Setup](#1-initial-server-setup)
 2. [Install Hermes Agent (Saturday)](#2-install-hermes-agent-saturday)
