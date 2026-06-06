@@ -162,7 +162,7 @@ Saturday handles: scaffold → configure → deploy → verify. All on 100% free
 3. Deploy → Cloudflare (default) or VPS (fallback)
 ```
 
-[→ Saturday Framework on GitHub](https://github.com/nhprince/saturday) | [→ Saturday Dashboard](https://saturday.pages.dev)
+[→ Saturday Framework on GitHub](https://github.com/nhprince/saturday) | [→ Saturday Dashboard](https://saturday-62d.pages.dev)
 
 ---
 
