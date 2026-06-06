@@ -87,54 +87,37 @@ sudo bash hst-install.sh
 
 Hermes Agent is an AI-powered assistant that runs on your server. We call ours **Saturday**.
 
-### 2.1 Install Node.js 22
-
-```bash
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-sudo apt install -y nodejs
-```
-
-### 2.2 Install Hermes CLI
+### 2.1 Install Hermes CLI
 
 ```bash
 npm install -g hermes-agent
 ```
 
-### 2.3 Configure Hermes
+### 2.2 Run the Setup Wizard
 
 ```bash
-# Create config directory
-mkdir -p ~/.hermes
-
-# Edit config (set your OpenRouter API key)
-nano ~/.hermes/config.yaml
+hermes setup
 ```
 
-**Minimal config.yaml:**
+The setup wizard will guide you through everything interactively:
 
-```yaml
-model:
-  default: openrouter/nvidia/nemotron-3-super-120b-a12b:free
-  fallback_providers:
-    - openrouter/nvidia/nemotron-3-super-120b-a12b:free
-    - openrouter/openrouter/auto:free
-    # Add more free models as needed
+1. **Choose your AI provider** — Select OpenRouter (recommended for free models)
+2. **Enter your API key** — Your OpenRouter API key
+3. **Select model** — Choose a free model like `nvidia/nemotron-3-super-120b-a12b:free`
+4. **Connect messaging platforms** — Telegram, WhatsApp, Slack, Email
+5. **Configure gateway** — Port and network settings
 
-api:
-  openrouter:
-    api_key: "sk-or-v1-..."
+That's it. The wizard creates `~/.hermes/config.yaml` automatically.
 
-telegram:
-  token: "YOUR_TELEGRAM_BOT_TOKEN"
+### 2.3 Start the Gateway
 
-whatsapp:
-  enabled: true
-
-gateway:
-  port: 3000
+```bash
+hermes gateway start
 ```
 
-### 2.4 Set Up as Systemd Service
+### 2.4 (Optional) Run as a Systemd Service
+
+For automatic restarts on boot:
 
 ```bash
 sudo nano /etc/systemd/system/hermes-gateway.service
@@ -147,9 +130,9 @@ After=network.target
 
 [Service]
 Type=simple
-User=nhprince
-WorkingDirectory=/home/nhprince
-ExecStart=/home/nhprince/.local/bin/hermes gateway
+User=YOUR_USERNAME
+WorkingDirectory=/home/YOUR_USERNAME
+ExecStart=/home/YOUR_USERNAME/.local/bin/hermes gateway
 Restart=always
 RestartSec=10
 Environment=NODE_ENV=production
@@ -162,7 +145,6 @@ WantedBy=multi-user.target
 sudo systemctl daemon-reload
 sudo systemctl enable hermes-gateway
 sudo systemctl start hermes-gateway
-sudo systemctl status hermes-gateway
 ```
 
 > **⚠️ Important:** Never restart the gateway from inside Hermes itself — it refuses to prevent restart loops. Always use:
@@ -170,106 +152,58 @@ sudo systemctl status hermes-gateway
 > sudo systemctl restart hermes-gateway
 > ```
 
+### 2.5 Verify It's Working
+
+```bash
+hermes status
+```
+
+You should see the gateway running and connected platforms listed.
+
 ---
 
 ## 3. Configure Free Model Rotation
 
-### 3.1 Find Free Models on OpenRouter
+### 3.1 Add Free Models as Fallbacks
 
-```bash
-curl -s "https://openrouter.ai/api/v1/models" | python3 -c "
-import json, sys
-data = json.load(sys.stdin)
-free = [m for m in data['data'] if m.get('pricing', {}).get('prompt') == '0']
-for m in free:
-    print(f\"{m['id']} — ctx: {m.get('context_length', '?')}\")
-"
-```
+After the initial setup, you can add more free models as fallbacks. Ask Saturday:
 
-### 3.2 Configure Fallback Providers
+> "Add all free OpenRouter models as fallbacks"
 
-Edit `~/.hermes/config.yaml` and add all free models to `fallback_providers`:
+Saturday will query the OpenRouter API and update `~/.hermes/config.yaml` automatically.
 
-```yaml
-model:
-  api_max_retries: 5
-  fallback_providers:
-    - openrouter/nvidia/nemotron-3-super-120b-a12b:free
-    - openrouter/openrouter/auto:free
-    - openrouter/google/gemini-2.0-flash-exp:free
-    - openrouter/deepseek/deepseek-r1-distill-llama-70b:free
-    # ... add all free models found via the API
-```
+### 3.2 Daily Auto-Refresh (Optional)
 
-### 3.3 Daily Free Model Refresh (Cron Job)
+To automatically refresh the free model list daily, ask Saturday:
 
-Create `~/.hermes/scripts/fetch_free_models.py`:
+> "Set up a daily cron job to refresh free models"
 
-```python
-#!/usr/bin/env python3
-"""Query OpenRouter for free models and update config.yaml"""
-import json, subprocess, urllib.request, re, os
+Saturday will create the script and cron job for you.
 
-config_path = os.path.expanduser("~/.hermes/config.yaml")
-
-req = urllib.request.Request("https://openrouter.ai/api/v1/models")
-resp = urllib.request.urlopen(req, timeout=30)
-data = json.loads(resp.read())
-
-free_models = []
-for m in data.get("data", []):
-    prompt_price = m.get("pricing", {}).get("prompt", "0")
-    completion_price = m.get("pricing", {}).get("completion", "0")
-    if prompt_price == "0" and completion_price == "0":
-        ctx = m.get("context_length", 0)
-        if isinstance(ctx, (int, float)) and ctx > 4000:
-            free_models.append(f"openrouter/{m['id']}:free")
-
-with open(config_path) as f:
-    content = f.read()
-
-# Update fallback_providers list
-new_providers = "\n" + "\n".join(f"    - {m}" for m in sorted(set(free_models)))
-pattern = r'(fallback_providers:)(.*?)(?=\n\w|\Z)'
-content = re.sub(pattern, r'\1' + new_providers + r'\n\3', content, flags=re.DOTALL)
-
-with open(config_path, "w") as f:
-    f.write(content)
-
-print(f"Updated {len(free_models)} free models in config.yaml")
-```
-
-Set up cron:
-```bash
-chmod +x ~/.hermes/scripts/fetch_free_models.py
-# Add to crontab: daily at 6 AM
-(crontab -l 2>/dev/null; echo "0 6 * * * /usr/bin/python3 /home/nhprince/.hermes/scripts/fetch_free_models.py >> /tmp/model_refresh.log 2>&1") | crontab -
-```
+> **Tip:** Free models change frequently. If you hit rate limits, just tell Saturday to "refresh free models" and it'll update the config.
 
 ---
 
 ## 4. Setup Messaging Platforms
+
+The `hermes setup` wizard handles most platform connections. Here's what you need:
 
 ### 4.1 Telegram
 
 1. Message [@BotFather](https://t.me/BotFather) on Telegram
 2. Create a new bot with `/newbot`
 3. Copy the token
-4. Add to `~/.hermes/config.yaml`:
-   ```yaml
-   telegram:
-     token: "YOUR_BOT_TOKEN"
-   ```
+4. During `hermes setup`, paste the token when prompted
 
 ### 4.2 WhatsApp
 
-WhatsApp connects via the Hermes gateway automatically. The bridge only supports **pre-synced contacts** from your phone's address book.
+WhatsApp connects automatically during setup. The bridge only supports **pre-synced contacts** from your phone's address book.
 
 > **Limitation:** You cannot send to arbitrary phone numbers. The contact must be saved in your phone first.
 
 ### 4.3 Slack & Email
 
-Configure in `~/.hermes/config.yaml` with respective API tokens.
+Follow the prompts during `hermes setup` to configure these platforms.
 
 ---
 
