@@ -89,12 +89,14 @@ This entire stack costs **$0/month** in infrastructure (excluding the VPS for th
 
 1. Apply at [education.github.com/pack](https://education.github.com/pack)
 2. Once approved, you get:
-   - **$100 Azure credits** (on top of student credits!)
    - **$200 DigitalOcean credits** for 60 days
    - **$13/month Heroku** for 24 months
+   - **Free GitHub Pro** (normally $4/month)
+   - **GitHub Copilot** (free Pro tier)
+   - Plus many more tools and services
 3. Use any of these to host your VPS for free
 
-> **💡 Best combo:** Azure for Students ($100, no CC) + GitHub Student Pack ($100 more) = **$200 in free cloud credits!**
+> **💡 Note:** Azure for Students already gives you **$100 in free credits** with no credit card required. The GitHub Student Pack does **not** stack additional Azure credits — it's the same $100 Azure offer. But the pack gives you plenty of other credits (DigitalOcean, Heroku, etc.) to cover hosting costs!
 
 ---
 
@@ -272,20 +274,26 @@ You should see the gateway running and connected platforms listed.
 
 ## 3. Setup Messaging Platforms
 
+> **🤖 Agent Tip:** You don't need to do this manually. Just say *"Set up all my messaging platforms"* — Saturday will walk you through connecting Telegram, WhatsApp, Slack, and Email automatically.
+
 The `hermes setup` wizard handles most platform connections. Here's what you need:
 
-### 3.1 Telegram
+### 3.1 Telegram (Recommended)
+
+**This is the primary way you'll talk to Saturday.** Telegram is the most reliable and fully-featured platform for the agent.
 
 1. Message [@BotFather](https://t.me/BotFather) on Telegram
 2. Create a new bot with `/newbot`
 3. Copy the token
 4. During `hermes setup`, paste the token when prompted
 
+> **💡 Why Telegram first?** It's the most stable connection, supports rich messages, and works 24/7 without your phone being online (unlike WhatsApp).
+
 ### 3.2 WhatsApp
 
 WhatsApp connects automatically during setup. The bridge only supports **pre-synced contacts** from your phone's address book.
 
-> **Limitation:** You cannot send to arbitrary phone numbers. The contact must be saved in your phone first.
+> **Limitation:** You cannot send to arbitrary phone numbers. The contact must be saved in your phone first. Also, WhatsApp requires your phone to stay connected.
 
 ### 3.3 Slack & Email
 
@@ -894,7 +902,7 @@ Apply at [education.github.com/pack](https://education.github.com/pack) — it's
 
 | Benefit | Value | Link |
 |---------|-------|------|
-| **Microsoft Azure** | **$100 credits** — can run your VPS for free! | azure.com |
+|| **Microsoft Azure** | **$100 credits** (via Azure for Students — same as above) | azure.com |
 | **DigitalOcean** | **$200 credits for 60 days** | digitalocean.com |
 | **Heroku** | **$13/month for 24 months** ($312 total) | heroku.com |
 | **GitHub Copilot** | **Free Pro tier** — AI code completion | github.com/features/copilot |
