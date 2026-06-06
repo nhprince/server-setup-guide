@@ -1,0 +1,856 @@
+# 🚀 VPS Setup Guide — From Zero to Production
+
+> **Author:** Prince (NH Prince Pradhan)  
+> **Maintained by:** Saturday (Hermes Agent) — auto-updated weekly  
+> **Last Updated:** 2026-06-06  
+> **Server:** Azure VM (2 vCPU, 842MB RAM, 29GB SSD) — Ubuntu 24.04 LTS  
+> **Domain:** cp.stuckstudio.qzz.io  
+
+A complete, step-by-step guide to configure a fresh VPS from scratch to a fully automated development + deployment environment. Designed so that **anyone** can follow along and replicate the entire setup.
+
+---
+
+## 📋 Table of Contents
+
+1. [Initial Server Setup](#1-initial-server-setup)
+2. [Install Hermes Agent (Saturday)](#2-install-hermes-agent-saturday)
+3. [Configure Free Model Rotation](#3-configure-free-model-rotation)
+4. [Setup Messaging Platforms](#4-setup-messaging-platforms)
+5. [Server Cleanup & Optimization](#5-server-cleanup--optimization)
+6. [Install Development Tools](#6-install-development-tools)
+7. [Configure Cloudflare](#7-configure-cloudflare)
+8. [Create Project Template](#8-create-project-template)
+9. [GitHub Actions CI/CD](#9-github-actions-cicd)
+10. [Daily Greeting Cron Job](#10-daily-greeting-cron-job)
+11. [Free Web Search](#11-free-web-search)
+12. [Troubleshooting](#12-troubleshooting)
+
+---
+
+## 1. Initial Server Setup
+
+### 1.1 Connect to Your Server
+
+```bash
+ssh user@your-server-ip
+```
+
+### 1.2 Update System
+
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+
+### 1.3 Create Non-Root User (if needed)
+
+```bash
+adduser nhprince
+usermod -aG sudo nhprince
+```
+
+### 1.4 Install Essential Packages
+
+```bash
+sudo apt install -y curl wget git build-essential software-properties-common \
+  unzip zip htop btop nano vim ufw fail2ban nginx certbot python3-certbot-nginx \
+  mariadb-server php-fpm
+```
+
+### 1.5 Configure Firewall
+
+```bash
+sudo ufw allow OpenSSH
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw enable
+```
+
+### 1.6 Set Timezone
+
+```bash
+sudo timedatectl set-timezone Asia/Dhaka
+```
+
+### 1.7 Install HestiaCP (Optional — for web panel)
+
+```bash
+wget https://raw.githubusercontent.com/hestiacp/hestiacp/release/install/hst-install.sh
+sudo bash hst-install.sh
+```
+
+> **Note:** Default HestiaCP binds to `127.0.0.1:8084` (localhost only).  
+> Access via SSH tunnel: `ssh -L 8084:127.0.0.1:8084 user@server`
+
+---
+
+## 2. Install Hermes Agent (Saturday)
+
+Hermes Agent is an AI-powered assistant that runs on your server. We call ours **Saturday**.
+
+### 2.1 Install Node.js 22
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt install -y nodejs
+```
+
+### 2.2 Install Hermes CLI
+
+```bash
+npm install -g hermes-agent
+```
+
+### 2.3 Configure Hermes
+
+```bash
+# Create config directory
+mkdir -p ~/.hermes
+
+# Edit config (set your OpenRouter API key)
+nano ~/.hermes/config.yaml
+```
+
+**Minimal config.yaml:**
+
+```yaml
+model:
+  default: openrouter/nvidia/nemotron-3-super-120b-a12b:free
+  fallback_providers:
+    - openrouter/nvidia/nemotron-3-super-120b-a12b:free
+    - openrouter/openrouter/auto:free
+    # Add more free models as needed
+
+api:
+  openrouter:
+    api_key: "sk-or-v1-..."
+
+telegram:
+  token: "YOUR_TELEGRAM_BOT_TOKEN"
+
+whatsapp:
+  enabled: true
+
+gateway:
+  port: 3000
+```
+
+### 2.4 Set Up as Systemd Service
+
+```bash
+sudo nano /etc/systemd/system/hermes-gateway.service
+```
+
+```ini
+[Unit]
+Description=Hermes Agent Gateway
+After=network.target
+
+[Service]
+Type=simple
+User=nhprince
+WorkingDirectory=/home/nhprince
+ExecStart=/home/nhprince/.local/bin/hermes gateway
+Restart=always
+RestartSec=10
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable hermes-gateway
+sudo systemctl start hermes-gateway
+sudo systemctl status hermes-gateway
+```
+
+> **⚠️ Important:** Never restart the gateway from inside Hermes itself — it refuses to prevent restart loops. Always use:
+> ```bash
+> sudo systemctl restart hermes-gateway
+> ```
+
+---
+
+## 3. Configure Free Model Rotation
+
+### 3.1 Find Free Models on OpenRouter
+
+```bash
+curl -s "https://openrouter.ai/api/v1/models" | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+free = [m for m in data['data'] if m.get('pricing', {}).get('prompt') == '0']
+for m in free:
+    print(f\"{m['id']} — ctx: {m.get('context_length', '?')}\")
+"
+```
+
+### 3.2 Configure Fallback Providers
+
+Edit `~/.hermes/config.yaml` and add all free models to `fallback_providers`:
+
+```yaml
+model:
+  api_max_retries: 5
+  fallback_providers:
+    - openrouter/nvidia/nemotron-3-super-120b-a12b:free
+    - openrouter/openrouter/auto:free
+    - openrouter/google/gemini-2.0-flash-exp:free
+    - openrouter/deepseek/deepseek-r1-distill-llama-70b:free
+    # ... add all free models found via the API
+```
+
+### 3.3 Daily Free Model Refresh (Cron Job)
+
+Create `~/.hermes/scripts/fetch_free_models.py`:
+
+```python
+#!/usr/bin/env python3
+"""Query OpenRouter for free models and update config.yaml"""
+import json, subprocess, urllib.request, re, os
+
+config_path = os.path.expanduser("~/.hermes/config.yaml")
+
+req = urllib.request.Request("https://openrouter.ai/api/v1/models")
+resp = urllib.request.urlopen(req, timeout=30)
+data = json.loads(resp.read())
+
+free_models = []
+for m in data.get("data", []):
+    prompt_price = m.get("pricing", {}).get("prompt", "0")
+    completion_price = m.get("pricing", {}).get("completion", "0")
+    if prompt_price == "0" and completion_price == "0":
+        ctx = m.get("context_length", 0)
+        if isinstance(ctx, (int, float)) and ctx > 4000:
+            free_models.append(f"openrouter/{m['id']}:free")
+
+with open(config_path) as f:
+    content = f.read()
+
+# Update fallback_providers list
+new_providers = "\n" + "\n".join(f"    - {m}" for m in sorted(set(free_models)))
+pattern = r'(fallback_providers:)(.*?)(?=\n\w|\Z)'
+content = re.sub(pattern, r'\1' + new_providers + r'\n\3', content, flags=re.DOTALL)
+
+with open(config_path, "w") as f:
+    f.write(content)
+
+print(f"Updated {len(free_models)} free models in config.yaml")
+```
+
+Set up cron:
+```bash
+chmod +x ~/.hermes/scripts/fetch_free_models.py
+# Add to crontab: daily at 6 AM
+(crontab -l 2>/dev/null; echo "0 6 * * * /usr/bin/python3 /home/nhprince/.hermes/scripts/fetch_free_models.py >> /tmp/model_refresh.log 2>&1") | crontab -
+```
+
+---
+
+## 4. Setup Messaging Platforms
+
+### 4.1 Telegram
+
+1. Message [@BotFather](https://t.me/BotFather) on Telegram
+2. Create a new bot with `/newbot`
+3. Copy the token
+4. Add to `~/.hermes/config.yaml`:
+   ```yaml
+   telegram:
+     token: "YOUR_BOT_TOKEN"
+   ```
+
+### 4.2 WhatsApp
+
+WhatsApp connects via the Hermes gateway automatically. The bridge only supports **pre-synced contacts** from your phone's address book.
+
+> **Limitation:** You cannot send to arbitrary phone numbers. The contact must be saved in your phone first.
+
+### 4.3 Slack & Email
+
+Configure in `~/.hermes/config.yaml` with respective API tokens.
+
+---
+
+## 5. Server Cleanup & Optimization
+
+### 5.1 Remove Unused PHP Versions
+
+HestiaCP installs multiple PHP-FPM versions. Keep only what you need:
+
+```bash
+# List installed PHP versions
+dpkg -l | grep php-fpm
+
+# Remove old versions (keep 8.3+)
+sudo apt remove -y php5.6-fpm php7.0-fpm php7.1-fpm php7.2-fpm \
+  php7.3-fpm php7.4-fpm php8.0-fpm php8.1-fpm php8.2-fpm
+
+# Restart remaining
+sudo systemctl restart php8.3-fpm
+```
+
+### 5.2 Remove Unnecessary Services
+
+```bash
+# No modem on a VPS
+sudo systemctl stop ModemManager
+sudo systemctl disable ModemManager
+sudo apt remove -y modemmanager
+
+# Single disk, no multipath needed
+sudo systemctl stop multipathd
+sudo systemctl disable multipathd
+
+# Only if not hosting DNS zones
+sudo systemctl stop bind9
+sudo systemctl disable bind9
+```
+
+### 5.3 Tune MariaDB for Low Memory
+
+```bash
+sudo nano /etc/mysql/conf.d/low-memory.cnf
+```
+
+```ini
+[mysqld]
+innodb_buffer_pool_size = 32M
+key_buffer_size = 16M
+max_connections = 20
+query_cache_size = 8M
+tmp_table_size = 8M
+performance_schema = OFF
+```
+
+```bash
+sudo systemctl restart mariadb
+```
+
+### 5.4 Expected Memory Savings
+
+| Action | RAM Saved |
+|--------|-----------|
+| Remove old PHP-FPM | ~90MB |
+| Remove ModemManager | ~10MB |
+| Remove multipathd | ~5MB |
+| Tune MariaDB | ~20MB |
+| **Total** | **~125MB** |
+
+---
+
+## 6. Install Development Tools
+
+### 6.1 Node.js Ecosystem
+
+```bash
+# pnpm (fast package manager)
+npm install -g pnpm
+
+# Bun (fast JS runtime)
+curl -fsSL https://bun.sh/install | bash
+
+# PM2 (process manager)
+npm install -g pm2
+
+# TypeScript
+pnpm add -g typescript
+
+# Wrangler (Cloudflare CLI)
+pnpm add -g wrangler
+```
+
+### 6.2 GitHub CLI
+
+```bash
+# Install gh CLI
+curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | \
+  sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | \
+  sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+sudo apt update && sudo apt install -y gh
+
+# Authenticate
+gh auth login
+```
+
+### 6.3 Python Tools
+
+```bash
+pip3 install --user black isort flake8 mypy
+```
+
+### 6.4 Add Hermes Node Bin to PATH
+
+```bash
+echo 'export PATH="/home/nhprince/.hermes/node/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+---
+
+## 7. Configure Cloudflare
+
+### 7.1 Create Cloudflare Account
+
+1. Go to [dash.cloudflare.com/sign-up](https://dash.cloudflare.com/sign-up)
+2. Create a free account
+
+### 7.2 Authenticate Wrangler
+
+```bash
+export PATH="/home/nhprince/.hermes/node/bin:$PATH"
+
+# Option A: Browser login (local machine)
+wrangler login
+
+# Option B: API token (remote server — recommended)
+# 1. Go to dash.cloudflare.com/profile/api-tokens
+# 2. Create token with: Workers Edit, KV Storage Edit, D1 Edit, R2 Storage Edit
+# 3. Set environment variable:
+export CLOUDFLARE_API_TOKEN="your-token-here"
+
+# Verify
+wrangler whoami
+```
+
+### 7.3 Create Cloudflare Resources
+
+```bash
+# KV Namespace
+wrangler kv namespace create KV
+# → Save the namespace ID
+
+# D1 Database
+wrangler d1 create your-db-name
+# → Save the database ID
+
+# Pages Project
+wrangler pages project create your-project-name --production-branch=main
+```
+
+### 7.4 Store Credentials
+
+Save these for later use:
+- **Account ID** (from `wrangler whoami`)
+- **KV Namespace ID**
+- **D1 Database ID**
+- **API Token**
+
+---
+
+## 8. Create Project Template
+
+### 8.1 Scaffold Structure
+
+```
+myproject/
+├── .github/
+│   └── workflows/
+│       └── deploy.yml          # CI/CD pipeline
+├── frontend/                   # Next.js app
+│   ├── src/app/
+│   │   ├── layout.tsx
+│   │   ├── page.tsx
+│   │   └── globals.css
+│   ├── next.config.ts          # output: "export"
+│   ├── tailwind.config.ts
+│   ├── postcss.config.js
+│   ├── package.json
+│   └── tsconfig.json
+├── backend/                    # Hono worker
+│   ├── src/
+│   │   └── index.ts
+│   ├── wrangler.toml
+│   └── package.json
+├── package.json                # Root workspace
+├── pnpm-workspace.yaml
+└── .gitignore
+```
+
+### 8.2 Create GitHub Repository
+
+```bash
+gh repo create myproject --public --clone
+cd myproject
+```
+
+### 8.3 Initialize Frontend (Next.js)
+
+```bash
+cd frontend
+pnpm create next-app . --typescript --tailwind --eslint --app --src-dir --import-alias "@/*" --use-pnpm
+```
+
+**next.config.ts:**
+```typescript
+import type { NextConfig } from "next";
+const nextConfig: NextConfig = {
+  output: "export",
+  images: { unoptimized: true },
+};
+export default nextConfig;
+```
+
+### 8.4 Initialize Backend (Hono)
+
+```bash
+cd ../backend
+pnpm init
+pnpm add hono drizzle-orm
+pnpm add -D @cloudflare/workers-types drizzle-kit typescript wrangler
+```
+
+**backend/src/index.ts:**
+```typescript
+import { Hono } from "hono";
+import { cors } from "hono/cors";
+
+export interface Env {
+  DB: D1Database;
+  KV: KVNamespace;
+}
+
+const app = new Hono<{ Bindings: Env }>();
+app.use("/api/*", cors());
+
+app.get("/api/health", (c) => {
+  return c.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+export default app;
+```
+
+**backend/wrangler.toml:**
+```toml
+name = "myproject"
+main = "src/index.ts"
+compatibility_date = "2024-11-12"
+compatibility_flags = ["nodejs_compat"]
+
+[[kv_namespaces]]
+binding = "KV"
+id = "YOUR_KV_ID"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "your-db"
+database_id = "YOUR_D1_ID"
+```
+
+### 8.5 Root Workspace Config
+
+**pnpm-workspace.yaml:**
+```yaml
+packages:
+  - "frontend"
+  - "backend"
+```
+
+**package.json:**
+```json
+{
+  "name": "myproject",
+  "private": true,
+  "scripts": {
+    "dev:frontend": "cd frontend && pnpm dev",
+    "dev:backend": "cd backend && pnpm dev",
+    "build:frontend": "cd frontend && pnpm build",
+    "deploy:cloudflare": "cd frontend && pnpm build && wrangler pages deploy out --project-name=myproject && cd ../backend && wrangler deploy"
+  }
+}
+```
+
+---
+
+## 9. GitHub Actions CI/CD
+
+### 9.1 Create Workflow
+
+**.github/workflows/deploy.yml:**
+
+```yaml
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      deploy_target:
+        description: "Deploy target"
+        required: true
+        default: "cloudflare"
+        type: choice
+        options:
+          - cloudflare
+          - server
+
+jobs:
+  deploy-cloudflare:
+    if: github.event.inputs.deploy_target == 'cloudflare' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: "pnpm" }
+
+      - name: Install frontend deps
+        run: cd frontend && pnpm install --no-frozen-lockfile
+
+      - name: Build frontend
+        run: cd frontend && pnpm build
+
+      - name: Deploy Frontend to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          workingDirectory: frontend
+          command: pages deploy out --project-name=myproject
+
+      - name: Install backend deps
+        run: cd backend && pnpm install --no-frozen-lockfile
+
+      - name: Deploy Backend to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          workingDirectory: backend
+          command: deploy
+
+  deploy-server:
+    if: github.event.inputs.deploy_target == 'server'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd ~/projects/myproject
+            git pull origin main
+            pnpm install
+            cd frontend && pnpm build && cd ..
+            cd backend && pnpm install && cd ..
+            pm2 restart myproject 2>/dev/null || echo "No PM2 process"
+            echo "✅ Deployed to server"
+```
+
+### 9.2 Add GitHub Secrets
+
+Go to **Repo → Settings → Secrets and variables → Actions**:
+
+| Secret | Value |
+|--------|-------|
+| `CF_API_TOKEN` | Cloudflare API token |
+| `CF_ACCOUNT_ID` | Cloudflare account ID |
+| `SERVER_HOST` | Your server IP or domain |
+| `SERVER_USER` | `nhprince` |
+| `SERVER_SSH_KEY` | Contents of `~/.ssh/id_ed25519` (private key) |
+
+### 9.3 Generate SSH Key for Server
+
+```bash
+ssh-keygen -t ed25519 -C "your-email" -f ~/.ssh/id_ed25519
+# Add public key to GitHub → Settings → SSH Keys
+# Add private key as SERVER_SSH_KEY secret
+```
+
+---
+
+## 10. Daily Greeting Cron Job
+
+### 10.1 Create Greeting Script
+
+**~/.hermes/scripts/greeting.sh:**
+
+```bash
+#!/bin/bash
+GREETINGS=(
+  "Good morning, Prince! ☀️ Ready to build something amazing today?"
+  "Rise and shine, boss! 🚀 Your server is running smooth."
+  "Hello Prince! 💻 All systems green. What are we building today?"
+  "Morning, Prince! 🌟 New day, new possibilities."
+  "Hey boss! ⚡ Server's been waiting for you."
+  "Good morning, Prince! 🎯 Let's make today count."
+  "Wakey wakey, Prince! ☕ Coffee's on me (virtually)."
+  "Hello, boss! 🛠️ All tools are ready for you."
+  "Morning, Prince! 📊 Everything's running perfectly."
+  "Hey Prince! 🎨 Time to create something beautiful."
+)
+
+DAY=$(date +%d)
+INDEX=$((DAY % ${#GREETINGS[@]}))
+echo "${GREETINGS[$INDEX]}"
+```
+
+```bash
+chmod +x ~/.hermes/scripts/greeting.sh
+```
+
+### 10.2 Set Up Cron via Hermes
+
+```
+# Ask Saturday to set up a daily 8 AM greeting cron job
+# Target: Telegram → NH Prince Pranhan
+```
+
+---
+
+## 11. Free Web Search
+
+### 11.1 DuckDuckGo HTML Scraping (No API Key)
+
+**~/.hermes/scripts/web_search.py:**
+
+```python
+#!/usr/bin/env python3
+"""Free web search via DuckDuckGo HTML — no API key needed"""
+import sys
+import urllib.request
+import urllib.parse
+import re
+
+def search(query, num_results=5):
+    encoded = urllib.parse.quote_plus(query)
+    url = f"https://html.duckduckgo.com/html/?q={encoded}"
+    
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
+    })
+    
+    try:
+        resp = urllib.request.urlopen(req, timeout=15)
+        html = resp.read().decode("utf-8", errors="ignore")
+        
+        results = []
+        # Extract results
+        pattern = r'result__url[^>]*>([^<]+)</a>.*?<a[^>]*result__a[^>]*>(.*?)</a>'
+        matches = re.findall(pattern, html, re.DOTALL)
+        
+        for url, title in matches[:num_results]:
+            title = re.sub(r'<[^>]+>', '', title).strip()
+            url = url.strip()
+            if title and url:
+                results.append({"title": title, "url": url})
+        
+        return results
+    except Exception as e:
+        return [{"error": str(e)}]
+
+if __name__ == "__main__":
+    query = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else "test"
+    results = search(query)
+    for r in results:
+        if "error" in r:
+            print(f"Error: {r['error']}")
+        else:
+            print(f"📌 {r['title']}")
+            print(f"   {r['url']}\n")
+```
+
+```bash
+chmod +x ~/.hermes/scripts/web_search.py
+# Usage: python3 ~/.hermes/scripts/web_search.py "your search query"
+```
+
+---
+
+## 12. Troubleshooting
+
+### 12.1 Gateway Won't Start
+
+```bash
+# Check logs
+sudo journalctl -u hermes-gateway -n 50
+
+# Check config
+hermes config check
+
+# Restart
+sudo systemctl restart hermes-gateway
+```
+
+### 12.2 Out of Memory During npm/pnpm Install
+
+```bash
+# Increase Node.js memory limit
+NODE_OPTIONS="--max-old-space-size=768" pnpm install
+
+# Or use swap
+sudo fallocate -l 1G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+```
+
+### 12.3 Wrangler Authentication Issues on Remote Server
+
+```bash
+# Use API token instead of browser login
+export CLOUDFLARE_API_TOKEN="your-token"
+wrangler whoami
+
+# If token is set but not working, ensure it has correct permissions:
+# - Workers Edit
+# - KV Storage Edit
+# - D1 Edit
+# - R2 Storage Edit
+```
+
+### 12.4 GitHub Actions Deployment Fails
+
+```bash
+# Check workflow run logs
+gh run list --limit 5
+gh run view <run-id> --log-failed
+
+# Common issues:
+# 1. Missing GitHub secrets → add them in repo settings
+# 2. pnpm lockfile missing → run pnpm install locally and commit
+# 3. accountId not set in workflow → add accountId: ${{ secrets.CF_ACCOUNT_ID }}
+# 4. Pages project not created → run: wrangler pages project create <name>
+```
+
+### 12.5 WhatsApp Can't Send to a Number
+
+The WhatsApp bridge only supports **pre-synced contacts**. Save the contact in your phone's address book first, then try again.
+
+---
+
+## 📊 Server Specifications
+
+| Resource | Value |
+|----------|-------|
+| **OS** | Ubuntu 24.04 LTS |
+| **CPU** | 2 vCPU (AMD EPYC 7763) |
+| **RAM** | 842MB |
+| **Disk** | 29GB SSD |
+| **Provider** | Microsoft Azure |
+| **Control Panel** | HestiaCP |
+| **Web Server** | nginx |
+| **Database** | MariaDB |
+| **PHP** | 8.3, 8.4, 8.5 |
+| **Node.js** | 22 LTS |
+| **AI Assistant** | Hermes Agent (Saturday) |
+
+## 🔗 Useful Links
+
+- **Hermes Agent Docs:** https://hermes-agent.nousresearch.com/docs
+- **OpenRouter:** https://openrouter.ai
+- **Cloudflare Dashboard:** https://dash.cloudflare.com
+- **GitHub Education Pack:** https://education.github.com/pack
+- **HestiaCP:** https://hestiacp.com
+
+---
+
+> 📝 **This guide is auto-updated every Friday by Saturday (Hermes Agent).**  
+> Last auto-update: 2026-06-06
