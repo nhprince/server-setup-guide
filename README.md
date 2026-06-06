@@ -39,7 +39,7 @@ This entire stack costs **$0/month** in infrastructure (excluding the VPS for th
 
 | Item | Cost |
 |------|------|
-| VPS (for AI agent) | **$0** (Azure for Students / Oracle Cloud free tier) |
+| VPS (for AI agent) | **$0** (Azure for Students) |
 | Cloudflare (Pages + Workers + D1 + KV + R2) | **$0** |
 | GitHub (Repos + Actions) | **$0** |
 | OpenRouter (free models) | **$0** |
@@ -69,7 +69,7 @@ This entire stack costs **$0/month** in infrastructure (excluding the VPS for th
 └─────────────────────────────────────────────────────────┘
 ```
 
-> **💡 Pro Tip:** If you're a student, the [GitHub Student Developer Pack](https://education.github.com/pak) gives you **$100 Azure credits**, **$200 DigitalOcean credits**, **$300 Oracle Cloud credits**, and more — meaning even the VPS can be **completely free**!
+> **💡 Pro Tip:** If you're a student, the [GitHub Student Developer Pack](https://education.github.com/pack) gives you **$100 Azure credits**, **$200 DigitalOcean credits**, and more — meaning even the VPS can be **completely free**!
 
 ### 🆓 How to Get a FREE VPS (No Credit Card Needed)
 
@@ -85,21 +85,12 @@ This entire stack costs **$0/month** in infrastructure (excluding the VPS for th
 6. Create a VM: **B1s tier** (1 vCPU, 1GB RAM) — **free for 750 hours/month**
 7. That's enough to run your AI agent 24/7 for free!
 
-#### Option 2: Oracle Cloud Free Tier
+#### Option 2: GitHub Student Pack Credits
 
-1. Go to [oracle.com/cloud/free](https://www.oracle.com/cloud/free/)
-2. Sign up with any email
-3. **No credit card required for free tier!**
-4. Get **4 ARM-based VMs** (up to 24GB RAM total) — **forever free**
-5. More powerful than Azure's free tier
-
-#### Option 3: GitHub Student Pack Credits
-
-1. Apply at [education.github.com/pack](https://education.github.com/pak)
+1. Apply at [education.github.com/pack](https://education.github.com/pack)
 2. Once approved, you get:
    - **$100 Azure credits** (on top of student credits!)
    - **$200 DigitalOcean credits** for 60 days
-   - **$300 Oracle Cloud credits** for 30 days
    - **$13/month Heroku** for 24 months
 3. Use any of these to host your VPS for free
 
@@ -115,6 +106,7 @@ Throughout this guide, you'll see this icon 🤖 — it means you can skip the m
 
 | Instead of... | Just say... |
 |---------------|-------------|
+| Manually configuring Telegram/WhatsApp/Slack | "Set up all my messaging platforms" |
 | Manually editing `config.yaml` | "Add all free OpenRouter models as fallbacks" |
 | Creating Cloudflare resources | "Set up Cloudflare Pages and Workers for my project" |
 | Writing GitHub Actions YAML | "Create a CI/CD pipeline that auto-deploys to Cloudflare" |
@@ -129,8 +121,8 @@ Throughout this guide, you'll see this icon 🤖 — it means you can skip the m
 
 1. [Initial Server Setup](#1-initial-server-setup)
 2. [Install Hermes Agent (Saturday)](#2-install-hermes-agent-saturday)
-3. [Configure Free Model Rotation](#3-configure-free-model-rotation)
-4. [Setup Messaging Platforms](#4-setup-messaging-platforms)
+3. [Setup Messaging Platforms](#3-setup-messaging-platforms)
+4. [Configure Free Model Rotation](#4-configure-free-model-rotation)
 5. [Server Cleanup & Optimization](#5-server-cleanup--optimization)
 6. [Install Development Tools](#6-install-development-tools)
 7. [Configure Cloudflare](#7-configure-cloudflare)
@@ -278,9 +270,32 @@ You should see the gateway running and connected platforms listed.
 
 ---
 
-## 3. Configure Free Model Rotation
+## 3. Setup Messaging Platforms
 
-### 3.1 Add Free Models as Fallbacks
+The `hermes setup` wizard handles most platform connections. Here's what you need:
+
+### 3.1 Telegram
+
+1. Message [@BotFather](https://t.me/BotFather) on Telegram
+2. Create a new bot with `/newbot`
+3. Copy the token
+4. During `hermes setup`, paste the token when prompted
+
+### 3.2 WhatsApp
+
+WhatsApp connects automatically during setup. The bridge only supports **pre-synced contacts** from your phone's address book.
+
+> **Limitation:** You cannot send to arbitrary phone numbers. The contact must be saved in your phone first.
+
+### 3.3 Slack & Email
+
+Follow the prompts during `hermes setup` to configure these platforms.
+
+---
+
+## 4. Configure Free Model Rotation
+
+### 4.1 Add Free Models as Fallbacks
 
 After the initial setup, you can add more free models as fallbacks. Ask Saturday:
 
@@ -288,7 +303,7 @@ After the initial setup, you can add more free models as fallbacks. Ask Saturday
 
 Saturday will query the OpenRouter API and update `~/.hermes/config.yaml` automatically.
 
-### 3.2 Daily Auto-Refresh (Optional)
+### 4.2 Daily Auto-Refresh (Optional)
 
 To automatically refresh the free model list daily, ask Saturday:
 
@@ -297,29 +312,6 @@ To automatically refresh the free model list daily, ask Saturday:
 Saturday will create the script and cron job for you.
 
 > **Tip:** Free models change frequently. If you hit rate limits, just tell Saturday to "refresh free models" and it'll update the config.
-
----
-
-## 4. Setup Messaging Platforms
-
-The `hermes setup` wizard handles most platform connections. Here's what you need:
-
-### 4.1 Telegram
-
-1. Message [@BotFather](https://t.me/BotFather) on Telegram
-2. Create a new bot with `/newbot`
-3. Copy the token
-4. During `hermes setup`, paste the token when prompted
-
-### 4.2 WhatsApp
-
-WhatsApp connects automatically during setup. The bridge only supports **pre-synced contacts** from your phone's address book.
-
-> **Limitation:** You cannot send to arbitrary phone numbers. The contact must be saved in your phone first.
-
-### 4.3 Slack & Email
-
-Follow the prompts during `hermes setup` to configure these platforms.
 
 ---
 
