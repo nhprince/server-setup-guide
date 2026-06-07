@@ -141,6 +141,9 @@ Throughout this guide, you'll see this icon 🤖 — it means you can skip the m
 | **Dark Theme UI** | Glassmorphism cards, gradient accents, micro-animations |
 | **Agent-Driven Workflow** | Saturday does the work, you just approve |
 | **VPS Fallback** | Dual-deploy to Cloudflare or your VPS |
+| **21st.dev Components** | Browse & install UI components via `saturday ui` |
+| **Modular Backend** | CMS, Auth, Comments, Payments, Email — pick what you need |
+| **6 Scaffolds** | Landing, Blog, Portfolio, SaaS, E-commerce, API |
 
 ### Quick Start with Saturday
 
@@ -150,9 +153,48 @@ Throughout this guide, you'll see this icon 🤖 — it means you can skip the m
 "Create a SaaS called tiny-tools"
 "Make a portfolio site"
 "Build an API for my app"
+"Create an e-commerce store"
+"Build a landing page for my product"
 ```
 
 Saturday handles: scaffold → configure → deploy → verify. All on 100% free infrastructure.
+
+### Saturday Scaffolds
+
+| Scaffold | What You Get |
+|----------|-------------|
+| **Landing** | Hero, features, testimonials, pricing, CTA, footer |
+| **Blog** | CMS-powered posts, search, categories, comments |
+| **Portfolio** | Projects, skills, experience, contact form |
+| **SaaS** | Teams, subscriptions, usage tracking, auth |
+| **E-commerce** | Products, orders, coupons, Stripe checkout |
+| **API** | RESTful API with generic CRUD helper |
+
+### Saturday Modules
+
+Plug-and-play backend modules:
+
+| Module | Description |
+|--------|-------------|
+| **CMS** | Headless CMS with content types, entries, media library |
+| **AuthJS** | JWT authentication (signup, login, refresh) |
+| **Comments** | Nested comments with moderation |
+| **Payments** | Stripe checkout, subscriptions, webhooks |
+| **Email** | Transactional emails via Resend |
+
+### Saturday UI Components
+
+Browse and install 21st.dev components:
+
+```bash
+saturday ui browse              # Interactive browser
+saturday ui search hero         # Search components
+saturday ui add hero-gradient   # Install a component
+saturday ui list                # List installed
+saturday ui sync                # Sync from 21st.dev
+```
+
+Curated components: Hero (gradient/minimal), Features Grid, Navbar (glassmorphism), Footer, Testimonials, Pricing, CTA, Auth Forms.
 
 ### How Saturday + This Guide Work Together
 
