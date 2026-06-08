@@ -11,7 +11,7 @@ Designed so that **anyone** can follow along and replicate the entire setup — 
 > 📌 **Quick Info**
 > - **Author:** Prince (NH Prince Pradhan)
 > - **Maintained by:** Saturday (Hermes Agent) — auto-updated weekly
-> - **Last Updated:** 2026-06-06
+> - **Last Updated:** 2026-06-08
 > - **Server:** Azure VM (2 vCPU, 842MB RAM, 29GB SSD) — Ubuntu 24.04 LTS
 > - **Domain:** cp.stuckstudio.qzz.io
 
@@ -631,6 +631,76 @@ Save these for later use:
 - **D1 Database ID**
 - **API Token**
 
+### 7.5 Cloudflare Global API Key (Recommended for AI Agent Access)
+
+> **🤖 Agent Tip:** The Global API Key gives the AI agent full access to manage everything — DNS, Email Routing, Workers, Pages, KV, D1, R2, and all zones. This is the **best option** for permanent agent access since it never expires (unlike API tokens which can expire or be revoked).
+
+The **Global API Key** is the master key to your Cloudflare account. Unlike API tokens (which need specific permissions and can expire), the Global Key has full access to everything and lasts forever.
+
+#### Step 1: Get Your Global API Key
+
+1. Go to [dash.cloudflare.com/profile/api-tokens](https://dash.cloudflare.com/profile/api-tokens)
+2. Scroll down to **"API Key"** section (NOT "API Tokens")
+3. Click **"View"** next to **"Global API Key"**
+4. Enter your Cloudflare password to reveal it
+5. **Copy the key immediately** — it looks like `cfk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` (starts with `cfk_`)
+
+> ⚠️ **Security:** This is your master key. Treat it like a password. Anyone with this key can control everything in your Cloudflare account.
+
+#### Step 2: Store It Securely on the Server
+
+```bash
+# Save key and email to secure files (readable only by you)
+echo -n 'cfk_YOUR_GLOBAL_KEY_HERE' > ~/.cloudflare_global_key && chmod 600 ~/.cloudflare_global_key
+echo -n 'your-email@gmail.com' > ~/.cloudflare_email && chmod 600 ~/.cloudflare_email
+
+# Add to shell profile so it loads automatically every session
+echo 'export CLOUDFLARE_GLOBAL_API_KEY="$(cat ~/.cloudflare_global_key)"' >> ~/.bashrc
+echo 'export CLOUDFLARE_EMAIL="$(cat ~/.cloudflare_email)"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+> **Why files instead of inline?** Storing the key in a separate file with `chmod 600` means only your user can read it. Inline `export` in `.bashrc` can be visible in process listings. Both methods work — the file approach is slightly more secure.
+
+#### Step 3: Verify It Works
+
+```bash
+source ~/.bashrc
+curl -s "https://api.cloudflare.com/client/v4/user" \
+  -H "X-Auth-Email: $CLOUD...IL" \
+  -H "X-Auth-Key: $CLOUD...KEY" | python3 -c "import sys,json; d=json.load(sys.stdin); print('✅ Authenticated as:', d['result']['email'] if d.get('success') else '❌ Error:', d['errors'])"
+```
+
+#### How the Agent Uses It
+
+The Global API Key uses **different auth headers** than API tokens:
+
+| Auth Method | Header | Best For |
+|-------------|--------|----------|
+| **Global API Key** | `X-Auth-Email` + `X-Auth-Key` | Full account access, never expires, best for AI agent |
+| **API Token** (`cfat_`) | `Authorization: Bearer ***` | Scoped permissions, can expire, good for CI/CD |
+| **Pages Token** (`cfut_`) | `Authorization: Bearer ***` | Deploy only, very limited |
+
+The agent uses the Global Key like this:
+```bash
+# Example: List all zones
+curl -s "https://api.cloudflare.com/client/v4/zones" \
+  -H "X-Auth-Email: $CLOUD...IL" \
+  -H "X-Auth-Key: $CLOUD...KEY"
+```
+
+#### What the Global Key Can Do
+
+- ✅ Manage **all DNS records** across all domains
+- ✅ Configure **Email Routing** (forwarding, catch-all, routing rules)
+- ✅ Create/manage **Workers, Pages, KV, D1, R2**
+- ✅ Manage **SSL/TLS settings**, firewall rules, page rules
+- ✅ Access **analytics, logs, and audit trails**
+- ✅ Manage **all zones** (domains) in the account
+- ✅ **Never expires** (only changes if you manually regenerate it)
+
+> 💡 **Pro Tip:** Keep your API tokens (`cfat_`) for CI/CD pipelines (GitHub Actions) since they have scoped permissions. Use the Global Key only on your personal VPS for the AI agent. This way, even if the CI/CD token is compromised, the attacker gets limited access.
+
 ---
 
 ## 8. Create Project Template
@@ -997,18 +1067,22 @@ sudo mkswap /swapfile
 sudo swapon /swapfile
 ```
 
-### 12.3 Wrangler Authentication Issues on Remote Server
+### 12.3 Cloudflare Authentication Issues on Remote Server
 
 ```bash
-# Use API token instead of browser login
-export CLOUDFLARE_API_TOKEN="your-token"
+# Preferred: Use Global API Key (never expires, full access)
+source ~/.bashrc
+curl -s "https://api.cloudflare.com/client/v4/user" \
+  -H "X-Auth-Email: $CLOUD...IL" \
+  -H "X-Auth-Key: $CLOUD...KEY"
+
+# Alternative: Use API token
+export CLOUDFLARE_API_TOKEN="cfat_..."
 wrangler whoami
 
 # If token is set but not working, ensure it has correct permissions:
-# - Workers Edit
-# - KV Storage Edit
-# - D1 Edit
-# - R2 Storage Edit
+# - Workers Edit, KV Storage Edit, D1 Edit, R2 Storage Edit, DNS Edit
+# If token expired or was revoked, use the Global Key instead (Section 7.5)
 ```
 
 ### 12.4 GitHub Actions Deployment Fails
