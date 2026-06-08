@@ -541,23 +541,72 @@ source ~/.bashrc
 1. Go to [dash.cloudflare.com/sign-up](https://dash.cloudflare.com/sign-up)
 2. Create a free account
 
-### 7.2 Authenticate Wrangler
+### 7.2 Authenticate with Cloudflare
+
+There are two ways to authenticate. **Use Option A (Account API Token) for full automation** — the agent can create projects, deploy, and manage everything without browser login.
+
+#### Option A: Account API Token (Recommended — Full Automation)
+
+This is the **best option** for AI agent-driven development. A single token gives the agent full access to create Pages projects, deploy, manage Workers, KV, D1, DNS, and more.
+
+**Create the token:**
+
+1. Go to [Cloudflare Dashboard → API Tokens](https://dash.cloudflare.com/?to=/:user/profile/api-tokens)
+   - **Direct link (replace `YOUR_ACCOUNT_ID`):** `https://dash.cloudflare.com/YOUR_ACCOUNT_ID/api-tokens/create`
+2. Click **"Create Token"**
+3. Click **"Get started"** next to **"Create Custom Token"**
+4. Configure:
+   - **Token name:** `hermes-agent` (or any name)
+   - **Permissions** (add each one):
+     | Service | Permission | Access |
+     |---------|-----------|--------|
+     | Account | Cloudflare Pages | Edit |
+     | Account | Workers Scripts | Edit |
+     | Account | Account Settings | Read |
+     | Zone | Zone | Read |
+     | Zone | DNS | Edit |
+     | Account | Memberships | Read |
+   - **Account Resources:** Include → All accounts
+   - **Zone Resources:** Include → All zones
+5. Click **Continue to summary** → **Create Token**
+6. **Copy the token immediately** — it looks like `cfat_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` (starts with `cfat_`, NOT `cfut_`)
+
+> ⚠️ **Important:** There are TWO types of Cloudflare tokens:
+> - **Account API Token** (`cfat_`) — Full API access. Use this one. ✅
+> - **Pages Deploy Token** (`cfut_`) — Can only deploy pre-built files. Cannot create projects via API. ❌
+>
+> If your token starts with `cfut_`, it's the wrong type. Create a new one from the Account API Tokens page.
+
+**Set the token:**
 
 ```bash
-export PATH="/home/nhprince/.hermes/node/bin:$PATH"
-
-# Option A: Browser login (local machine)
-wrangler login
-
-# Option B: API token (remote server — recommended)
-# 1. Go to dash.cloudflare.com/profile/api-tokens
-# 2. Create token with: Workers Edit, KV Storage Edit, D1 Edit, R2 Storage Edit
-# 3. Set environment variable:
-export CLOUDFLARE_API_TOKEN="your-token-here"
+# Add to your shell profile
+export CLOUDFLARE_API_TOKEN="cfat_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+export CLOUDFLARE_ACCOUNT_ID="your-account-id"
 
 # Verify
 wrangler whoami
 ```
+
+**Add to GitHub Secrets (for CI/CD):**
+
+The agent can do this automatically, or you can do it manually:
+1. Go to your GitHub repo → Settings → Secrets and variables → Actions
+2. Add these secrets:
+   - `CLOUDFLARE_API_TOKEN` = your `cfat_` token
+   - `CF_ACCOUNT_ID` = your account ID
+
+> **🤖 Agent Tip:** Just say *"Set up Cloudflare API access with full automation"* — the agent will create the token instructions, add it to GitHub Secrets, and configure everything.
+
+#### Option B: Browser Login (Local Machine Only)
+
+```bash
+export PATH="/home/nhprince/.hermes/node/bin:$PATH"
+wrangler login
+# → Opens browser for OAuth login
+```
+
+> ⚠️ This only works on machines with a browser. Not suitable for automated CI/CD or remote servers.
 
 ### 7.3 Create Cloudflare Resources
 
@@ -715,6 +764,8 @@ packages:
 > **🤖 Agent Tip:** Just say *"Set up auto-deploy to Cloudflare on every git push"* — Saturday will create the GitHub Actions workflow, add all secrets, and configure the dual-deploy pipeline.
 
 ### 9.1 Create Workflow
+
+> **⚠️ Secret Naming:** Use `CLOUDFLARE_API_TOKEN` (not `CF_API_TOKEN`) for the Account API Token (`cfat_`). Both names work — just be consistent. The examples below use `CF_API_TOKEN` to match the existing Saturday framework convention.
 
 **.github/workflows/deploy.yml:**
 
