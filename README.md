@@ -11,8 +11,8 @@ Designed so that **anyone** can follow along and replicate the entire setup — 
 > 📌 **Quick Info**
 > - **Author:** Prince (NH Prince Pradhan)
 > - **Maintained by:** Saturday (Hermes Agent) — auto-updated weekly
-> - **Last Updated:** 2026-06-08
-> - **Server:** Azure VM (2 vCPU, 842MB RAM, 29GB SSD) — Ubuntu 24.04 LTS
+- **Last Updated:** 2026-06-12
+- **Server:** Azure VM (2 vCPU, 842MB RAM, 29GB SSD) — Ubuntu 24.04.4 LTS
 > - **Domain:** cp.stuckstudio.qzz.io
 
 ---
@@ -222,6 +222,7 @@ Curated components: Hero (gradient/minimal), Features Grid, Navbar (glassmorphis
 12. [Troubleshooting](#12-troubleshooting)
 13. [A-to-Z Example Workflow — From Idea to Live Project](#🗺️-a-to-z-example-workflow--from-idea-to-live-project)
 14. [Free Student Benefits](#13-free-student-benefits)
+15. [Current Server State](#15-current-server-state)
 
 ---
 
@@ -417,7 +418,7 @@ Saturday will create the script and cron job for you.
 
 ### 5.1 Remove Unused PHP Versions
 
-HestiaCP installs multiple PHP-FPM versions. Keep only what you need:
+**⚠️ as of 2026-06-12: Old PHP versions 5.6–8.2 are still installed.** Remove them:
 
 ```bash
 # List installed PHP versions
@@ -446,6 +447,15 @@ sudo systemctl disable multipathd
 # Only if not hosting DNS zones
 sudo systemctl stop bind9
 sudo systemctl disable bind9
+
+# Firmware updates not needed on a VPS (no physical hardware)
+sudo systemctl stop fwupd
+sudo systemctl disable fwupd
+sudo apt remove -y fwupd
+
+# Disk management daemon (desktop-only, not needed on headless VPS)
+sudo systemctl stop udisks2
+sudo systemctl disable udisks2
 ```
 
 ### 5.3 Tune MariaDB for Low Memory
@@ -468,15 +478,17 @@ performance_schema = OFF
 sudo systemctl restart mariadb
 ```
 
-### 5.4 Expected Memory Savings
+### 5.5 Expected Memory Savings
 
 | Action | RAM Saved |
 |--------|-----------|
 | Remove old PHP-FPM | ~90MB |
 | Remove ModemManager | ~10MB |
 | Remove multipathd | ~5MB |
+| Remove fwupd | ~15MB |
+| Remove udisks2 | ~10MB |
 | Tune MariaDB | ~20MB |
-| **Total** | **~125MB** |
+| **Total** | **~150MB** |
 
 ---
 
@@ -490,7 +502,8 @@ sudo systemctl restart mariadb
 # pnpm (fast package manager)
 npm install -g pnpm
 
-# Bun (fast JS runtime)
+# Bun (fast JS runtime) — NOT YET INSTALLED
+# Install when needed:
 curl -fsSL https://bun.sh/install | bash
 
 # PM2 (process manager)
@@ -974,6 +987,20 @@ chmod +x ~/.hermes/scripts/greeting.sh
 # Target: Telegram → NH Prince Pranhan
 ```
 
+### 10.3 Active Cron Jobs (As of 2026-06-12)
+
+The following Hermes cron jobs are currently active on this server:
+
+| Job | Schedule | Description |
+|-----|----------|-------------|
+| **Daily Morning Greeting** | `0 2 * * *` (UTC) | Sends a rotating morning greeting to Telegram |
+| **Refresh OpenRouter Free Models** | `0 0 * * *` (UTC) | Updates the free model fallback list daily |
+| **Birthday Wish - Telegram** | Once: 2026-06-19 18:00 | Birthday message to Prince on Telegram |
+| **Birthday Wish - WhatsApp** | Once: 2026-06-19 18:00 | Birthday message to Prince on WhatsApp |
+| **Weekly Server Guide Update** | `0 4 * * 5` (Fri) | Auto-updates this guide and pushes to GitHub |
+
+> **🤖 Agent Tip:** To manage cron jobs, just tell Saturday *"list my cron jobs"*, *"add a cron job that..."*, or *"remove the X cron job"*.
+
 ---
 
 ## 11. Free Web Search
@@ -981,6 +1008,12 @@ chmod +x ~/.hermes/scripts/greeting.sh
 > **🤖 Agent Tip:** You don't need to set this up manually. Just ask Saturday *"search for [anything]"* — it already has free web search built in via DuckDuckGo.
 
 ### 11.1 How It Works
+
+Hermes Agent has built-in web search powered by DuckDuckGo — no setup needed, no API key required. Just ask Saturday anything and it searches automatically.
+
+### 11.2 Manual Search Script (Legacy)
+
+For command-line searches outside the agent:
 
 **~/.hermes/scripts/web_search.py:**
 
@@ -1060,11 +1093,15 @@ sudo systemctl restart hermes-gateway
 # Increase Node.js memory limit
 NODE_OPTIONS="--max-old-space-size=768" pnpm install
 
-# Or use swap
+# Check if swap is available (4GB configured)
+free -h
+
+# If no swap, add it:
 sudo fallocate -l 1G /swapfile
 sudo chmod 600 /swapfile
 sudo mkswap /swapfile
 sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 ```
 
 ### 12.3 Cloudflare Authentication Issues on Remote Server
@@ -1148,17 +1185,25 @@ Apply at [education.github.com/pack](https://education.github.com/pack) — it's
 
 | Resource | Value |
 |----------|-------|
-| **OS** | Ubuntu 24.04 LTS |
+| **OS** | Ubuntu 24.04.4 LTS (Noble Numbat) |
+| **Kernel** | 6.17.0-1017-azure |
 | **CPU** | 2 vCPU (AMD EPYC 7763) |
 | **RAM** | 842MB |
-| **Disk** | 29GB SSD |
-| **Provider** | Microsoft Azure |
+| **Disk** | 29GB SSD (24G used / 4.7G free as of 2026-06-12) |
+| **Swap** | 4.0GB (1.4GB used) |
+| **Provider** | Microsoft Azure (Azure for Students) |
 | **Control Panel** | HestiaCP |
-| **Web Server** | nginx |
-| **Database** | MariaDB |
-| **PHP** | 8.3, 8.4, 8.5 |
-| **Node.js** | 22 LTS |
-| **AI Assistant** | Hermes Agent (Saturday) |
+| **Web Server** | nginx 1.31.1 |
+| **Database** | MariaDB 11.4.12 |
+| **PHP** | 8.3.31 (5.6–8.2 installed but unused — safe to remove) |
+| **Node.js** | 22.22.3 LTS |
+| **pnpm** | 11.5.2 |
+| **PM2** | 7.0.1 |
+| **Wrangler** | 4.98.0 |
+| **GitHub CLI** | 2.93.0 |
+| **Hermes Agent** | 0.15.1 |
+| **AI Assistant** | Saturday (Hermes Agent via OpenRouter) |
+| **Model** | openrouter/owl-alpha |
 
 ## 🔗 Useful Links
 
@@ -1167,6 +1212,59 @@ Apply at [education.github.com/pack](https://education.github.com/pack) — it's
 - **Cloudflare Dashboard:** https://dash.cloudflare.com
 - **GitHub Education Pack:** https://education.github.com/pack
 - **HestiaCP:** https://hestiacp.com
+
+---
+
+## 15. Current Server State
+
+> This section is auto-updated weekly to reflect the actual state of the server.
+
+### Active Services (As of 2026-06-12)
+
+| Service | Status | Purpose |
+|---------|--------|---------|
+| nginx | ✅ Running | Web server (port 80/443) |
+| MariaDB | ✅ Running | Database server |
+| php8.3-fpm | ✅ Running | PHP processor |
+| HestiaCP | ✅ Running | Web control panel (port 8084) |
+| fail2ban | ✅ Running | SSH brute-force protection |
+| chrony | ✅ Running | NTP time sync |
+| vsftpd | ✅ Running | FTP server |
+| sshd | ✅ Running | Remote access |
+| cron | ✅ Running | Scheduled tasks |
+| Hermes Gateway | ✅ Running | AI agent gateway (PID 990120) |
+| fwupd | ⚠️ Running | Firmware updates (safe to remove — no physical hardware) |
+| udisks2 | ⚠️ Running | Disk management (safe to remove — desktop-only) |
+
+### nginx Virtual Hosts
+
+| Domain | Purpose |
+|--------|---------|
+| `cp.stuckstudio.qzz.io` | HestiaCP control panel |
+| `panel.stuckstudio.qzz.io` | Panel alias |
+| `stuckstudio.qzz.io` | Main domain |
+| `gssclibrary.stuckstudio.qzz.io` | GSSC Library project |
+| `gssclibrary.nhprince.dpdns.org` | GSSC Library (ddns backup) |
+
+### Hermes Agent Configuration
+
+| Setting | Value |
+|---------|-------|
+| **Model** | openrouter/owl-alpha |
+| **Gateway** | Running (systemd user service) |
+| **Active Sessions** | 3 |
+| **Scheduled Jobs** | 5 active |
+| **Messaging** | Telegram ✓, WhatsApp ✓, Slack ✓, Email ✓ |
+| **Fallback Models** | 24 free models configured |
+| **Personalities** | 12 (helpful, concise, technical, creative, teacher, kawaii, catgirl, pirate, shakespeare, surfer, noir, uwu, philosopher, hype) |
+
+### Disk Usage
+
+```
+/dev/root  29G  24G  4.7G  84% /
+```
+
+> ⚠️ **84% disk usage** — Monitor closely. Clean up old Docker images, npm caches, and unused PHP versions to free space.
 
 ---
 
@@ -1399,4 +1497,4 @@ This guide and the entire setup were built by:
 | Telegram + WhatsApp | Messaging platforms |
 
 > 📝 **This guide is auto-updated every Friday by Saturday (Hermes Agent).**
-> Last auto-update: 2026-06-06
+> Last auto-update: 2026-06-12
