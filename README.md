@@ -11,7 +11,7 @@ Designed so that **anyone** can follow along and replicate the entire setup — 
 > 📌 **Quick Info**
 > - **Author:** Prince (NH Prince Pradhan)
 > - **Maintained by:** Saturday (Hermes Agent) — auto-updated weekly
-- **Last Updated:** 2026-06-12
+- **Last Updated:** 2026-06-19
 - **Server:** Azure VM (2 vCPU, 842MB RAM, 29GB SSD) — Ubuntu 24.04.4 LTS
 > - **Domain:** cp.stuckstudio.qzz.io
 
@@ -418,36 +418,26 @@ Saturday will create the script and cron job for you.
 
 ### 5.1 Remove Unused PHP Versions
 
-**⚠️ as of 2026-06-12: Old PHP versions 5.6–8.2 are still installed.** Remove them:
+**✅ as of 2026-06-19: Old PHP versions 5.6–8.2 have been removed.** The server now runs PHP 8.3 (primary), 8.4, and 8.5 (the latter two bundled with HestiaCP). All three are installed but only 8.3-fpm is actively running.
+
+If you need to disable the unused PHP-FPM versions:
 
 ```bash
-# List installed PHP versions
-dpkg -l | grep php-fpm
+# Disable PHP 8.4 and 8.5 FPM if not needed
+sudo systemctl stop php8.4-fpm php8.5-fpm
+sudo systemctl disable php8.4-fpm php8.5-fpm
 
-# Remove old versions (keep 8.3+)
-sudo apt remove -y php5.6-fpm php7.0-fpm php7.1-fpm php7.2-fpm \
-  php7.3-fpm php7.4-fpm php8.0-fpm php8.1-fpm php8.2-fpm
-
-# Restart remaining
+# Keep only 8.3 running
 sudo systemctl restart php8.3-fpm
 ```
 
 ### 5.2 Remove Unnecessary Services
 
+**✅ as of 2026-06-19: ModemManager, multipathd, and bind9 have already been removed/stopped.**
+
+The following services are still running but safe to remove on a VPS:
+
 ```bash
-# No modem on a VPS
-sudo systemctl stop ModemManager
-sudo systemctl disable ModemManager
-sudo apt remove -y modemmanager
-
-# Single disk, no multipath needed
-sudo systemctl stop multipathd
-sudo systemctl disable multipathd
-
-# Only if not hosting DNS zones
-sudo systemctl stop bind9
-sudo systemctl disable bind9
-
 # Firmware updates not needed on a VPS (no physical hardware)
 sudo systemctl stop fwupd
 sudo systemctl disable fwupd
@@ -480,15 +470,16 @@ sudo systemctl restart mariadb
 
 ### 5.5 Expected Memory Savings
 
-| Action | RAM Saved |
-|--------|-----------|
-| Remove old PHP-FPM | ~90MB |
-| Remove ModemManager | ~10MB |
-| Remove multipathd | ~5MB |
-| Remove fwupd | ~15MB |
-| Remove udisks2 | ~10MB |
-| Tune MariaDB | ~20MB |
-| **Total** | **~150MB** |
+| Action | RAM Saved | Status |
+|--------|-----------|--------|
+| Remove old PHP-FPM | ~90MB | ✅ Done |
+| Remove ModemManager | ~10MB | ✅ Done |
+| Remove multipathd | ~5MB | ✅ Done |
+| Remove bind9 | ~15MB | ✅ Done |
+| Remove fwupd | ~15MB | ⚠️ Still running |
+| Remove udisks2 | ~10MB | ⚠️ Still running |
+| Tune MariaDB | ~20MB | ✅ Done |
+| **Total** | **~165MB** | **~130MB saved so far** |
 
 ---
 
@@ -514,6 +505,16 @@ pnpm add -g typescript
 
 # Wrangler (Cloudflare CLI)
 pnpm add -g wrangler
+
+# Docker (container runtime)
+sudo apt install -y docker.io docker-compose-v2
+sudo usermod -aG docker $USER
+
+# opencode-ai (AI coding assistant)
+npm install -g opencode-ai
+
+# Supabase CLI (local development & migrations)
+npm install -g supabase
 ```
 
 ### 6.2 GitHub CLI
@@ -987,17 +988,18 @@ chmod +x ~/.hermes/scripts/greeting.sh
 # Target: Telegram → NH Prince Pranhan
 ```
 
-### 10.3 Active Cron Jobs (As of 2026-06-12)
+### 10.3 Active Cron Jobs (As of 2026-06-19)
 
 The following Hermes cron jobs are currently active on this server:
 
 | Job | Schedule | Description |
 |-----|----------|-------------|
 | **Daily Morning Greeting** | `0 2 * * *` (UTC) | Sends a rotating morning greeting to Telegram |
-| **Refresh OpenRouter Free Models** | `0 0 * * *` (UTC) | Updates the free model fallback list daily |
 | **Birthday Wish - Telegram** | Once: 2026-06-19 18:00 | Birthday message to Prince on Telegram |
 | **Birthday Wish - WhatsApp** | Once: 2026-06-19 18:00 | Birthday message to Prince on WhatsApp |
 | **Weekly Server Guide Update** | `0 4 * * 5` (Fri) | Auto-updates this guide and pushes to GitHub |
+
+> 📝 The "Refresh OpenRouter Free Models" daily cron job has been removed. Free model fallbacks are now managed manually or via the `hermes model` command when needed.
 
 > **🤖 Agent Tip:** To manage cron jobs, just tell Saturday *"list my cron jobs"*, *"add a cron job that..."*, or *"remove the X cron job"*.
 
@@ -1189,21 +1191,22 @@ Apply at [education.github.com/pack](https://education.github.com/pack) — it's
 | **Kernel** | 6.17.0-1017-azure |
 | **CPU** | 2 vCPU (AMD EPYC 7763) |
 | **RAM** | 842MB |
-| **Disk** | 29GB SSD (24G used / 4.7G free as of 2026-06-12) |
-| **Swap** | 4.0GB (1.4GB used) |
+| **Disk** | 29GB SSD (26G used / 2.2G free as of 2026-06-19) |
+| **Swap** | 4.0GB (1.3GB used) |
 | **Provider** | Microsoft Azure (Azure for Students) |
 | **Control Panel** | HestiaCP |
 | **Web Server** | nginx 1.31.1 |
 | **Database** | MariaDB 11.4.12 |
-| **PHP** | 8.3.31 (5.6–8.2 installed but unused — safe to remove) |
+| **PHP** | 8.3, 8.4, 8.5 (8.4/8.5 via HestiaCP; 8.3 is primary) |
 | **Node.js** | 22.22.3 LTS |
 | **pnpm** | 11.5.2 |
 | **PM2** | 7.0.1 |
 | **Wrangler** | 4.98.0 |
 | **GitHub CLI** | 2.93.0 |
-| **Hermes Agent** | 0.15.1 |
+| **Hermes Agent** | 0.16.0 (2026.6.5) |
 | **AI Assistant** | Saturday (Hermes Agent via OpenRouter) |
 | **Model** | openrouter/owl-alpha |
+| **Extra Tools** | opencode-ai 1.17.1, supabase CLI 2.105.0, TypeScript 6.0.3, Docker + Docker Compose |
 
 ## 🔗 Useful Links
 
@@ -1219,20 +1222,20 @@ Apply at [education.github.com/pack](https://education.github.com/pack) — it's
 
 > This section is auto-updated weekly to reflect the actual state of the server.
 
-### Active Services (As of 2026-06-12)
+### Active Services (As of 2026-06-19)
 
 | Service | Status | Purpose |
 |---------|--------|---------|
 | nginx | ✅ Running | Web server (port 80/443) |
 | MariaDB | ✅ Running | Database server |
 | php8.3-fpm | ✅ Running | PHP processor |
-| HestiaCP | ✅ Running | Web control panel (port 8084) |
 | fail2ban | ✅ Running | SSH brute-force protection |
 | chrony | ✅ Running | NTP time sync |
+| docker | ✅ Running | Container runtime |
 | vsftpd | ✅ Running | FTP server |
 | sshd | ✅ Running | Remote access |
 | cron | ✅ Running | Scheduled tasks |
-| Hermes Gateway | ✅ Running | AI agent gateway (PID 990120) |
+| Hermes Gateway | ✅ Running | AI agent gateway (PID 1621981) |
 | fwupd | ⚠️ Running | Firmware updates (safe to remove — no physical hardware) |
 | udisks2 | ⚠️ Running | Disk management (safe to remove — desktop-only) |
 
@@ -1253,18 +1256,19 @@ Apply at [education.github.com/pack](https://education.github.com/pack) — it's
 | **Model** | openrouter/owl-alpha |
 | **Gateway** | Running (systemd user service) |
 | **Active Sessions** | 3 |
-| **Scheduled Jobs** | 5 active |
+| **Scheduled Jobs** | 4 active (includes 2 one-time birthday jobs for 2026-06-19) |
 | **Messaging** | Telegram ✓, WhatsApp ✓, Slack ✓, Email ✓ |
 | **Fallback Models** | 24 free models configured |
-| **Personalities** | 12 (helpful, concise, technical, creative, teacher, kawaii, catgirl, pirate, shakespeare, surfer, noir, uwu, philosopher, hype) |
+| **Personalities** | 12+ (helpful, concise, technical, creative, teacher, kawaii, catgirl, pirate, shakespeare, surfer, noir, uwu, philosopher, hype) |
+| **API Keys Active** | OpenRouter ✓, Google/Gemini ✓, xAI/Grok ✓ |
 
 ### Disk Usage
 
 ```
-/dev/root  29G  24G  4.7G  84% /
+/dev/root  29G  26G  2.2G  93% /
 ```
 
-> ⚠️ **84% disk usage** — Monitor closely. Clean up old Docker images, npm caches, and unused PHP versions to free space.
+> ⚠️ **93% disk usage** — Monitor closely. Only 2.2GB free. Clean up old Docker images, npm caches, and unused PHP versions to free space.
 
 ---
 
@@ -1497,4 +1501,4 @@ This guide and the entire setup were built by:
 | Telegram + WhatsApp | Messaging platforms |
 
 > 📝 **This guide is auto-updated every Friday by Saturday (Hermes Agent).**
-> Last auto-update: 2026-06-12
+> Last auto-update: 2026-06-19
