@@ -1167,7 +1167,7 @@ Apply at [education.github.com/pack](https://education.github.com/pack) — it's
 
 | Benefit | Value | Link |
 |---------|-------|------|
-|| **Microsoft Azure** | **$100 credits** (via Azure for Students — same as above) | azure.com |
+| **Microsoft Azure** | **$100 credits** (via Azure for Students — same as above) | azure.com |
 | **DigitalOcean** | **$200 credits for 60 days** | digitalocean.com |
 | **Heroku** | **$13/month for 24 months** ($312 total) | heroku.com |
 | **GitHub Copilot** | **Free Pro tier** — AI code completion | github.com/features/copilot |
