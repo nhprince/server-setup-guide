@@ -11,7 +11,7 @@ Designed so that **anyone** can follow along and replicate the entire setup — 
 > 📌 **Quick Info**
 > - **Author:** Prince (NH Prince Pradhan)
 > - **Maintained by:** Saturday (Hermes Agent) — auto-updated weekly
-> - **Last Updated:** 2026-06-26
+|> - **Last Updated:** 2026-07-03
 - **Server:** Azure VM (2 vCPU, 842MB RAM, 29GB SSD) — Ubuntu 24.04.4 LTS
 > - **Domain:** cp.stuckstudio.qzz.io
 
@@ -1216,10 +1216,7 @@ Apply at [education.github.com/pack](https://education.github.com/pack) — it's
 | **PM2** | 7.0.1 |
 | **Wrangler** | 4.98.0 |
 | **GitHub CLI** | 2.93.0 |
-| **Hermes Agent** | 0.17.0 (2026.6.19) |
-| **AI Assistant** | Saturday (Hermes Agent via OpenRouter) |
-| **Model** | openrouter/owl-alpha |
-| **Extra Tools** | supabase CLI 2.105.0; Docker, Bun, opencode-ai — not installed |
+| **Hermes Agent** | 0.17.0 (2026.6.19) | ✅ Updated |\n| **AI Assistant** | Saturday (Hermes Agent via OpenRouter) | ✅ Active |\n| **Model** | openrouter/owl-alpha | ✅ Primary |\n| **Fallback Models** | google/gemma-4-31b-it:free | ✅ Configured |
 
 ## 🔗 Useful Links
 
@@ -1235,7 +1232,7 @@ Apply at [education.github.com/pack](https://education.github.com/pack) — it's
 
 > This section is auto-updated weekly to reflect the actual state of the server.
 
-### Active Services (As of 2026-06-26)
+### Active Services (As of 2026-07-03)
 
 | Service | Status | Purpose |
 |---------|--------|---------|
