@@ -11,9 +11,9 @@ Designed so that **anyone** can follow along and replicate the entire setup — 
 > 📌 **Quick Info**
 > - **Author:** Prince (NH Prince Pradhan)
 > - **Maintained by:** Saturday (Hermes Agent) — auto-updated weekly
-|> - **Last Updated:** 2026-07-10
-- **Server:** Azure VM (2 vCPU, 842MB RAM, 29GB SSD) — Ubuntu 24.04.4 LTS
-> - **Domain:** cp.stuckstudio.qzz.io
+> - **Last Updated:** 2026-09-04
+> - **Server:** Azure VM (2 vCPU, 898MB RAM, 62GB SSD) — Ubuntu 22.04.5 LTS
+> - **Domains:** origin-api / bridge-api at `*.nhprinceprodhan.dpdns.org` (Cloudflare Tunnel)
 
 ---
 
@@ -272,6 +272,8 @@ sudo timedatectl set-timezone Asia/Dhaka
 
 ### 1.7 Install HestiaCP (Optional — for web panel)
 
+> **ℹ️ Server migration note (2026-09):** The current production server did a clean OS reinstall and no longer runs HestiaCP, MariaDB, or PHP. Domains are served via nginx + **Cloudflare Tunnel** (`cloudflared` systemd service) instead. The HestiaCP steps below remain for reference if you want a web panel on a fresh box.
+
 ```bash
 wget https://raw.githubusercontent.com/hestiacp/hestiacp/release/install/hst-install.sh
 sudo bash hst-install.sh
@@ -279,6 +281,25 @@ sudo bash hst-install.sh
 
 > **Note:** Default HestiaCP binds to `127.0.0.1:8084` (localhost only).  
 > Access via SSH tunnel: `ssh -L 8084:127.0.0.1:8084 user@server`
+
+### 1.8 (Alternative) Cloudflare Tunnel instead of public IP exposure
+
+The current server exposes services via a named Cloudflare Tunnel — no public ports needed on the VM other than SSH:
+
+```bash
+# Install cloudflared
+wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+sudo dpkg -i cloudflared-linux-amd64.deb
+
+# Authenticate and create a tunnel
+cloudflared tunnel login
+cloudflared tunnel create origin-api
+# Add public hostnames in the Zero Trust dashboard → Networks → Tunnels
+# Then run as a service:
+sudo cloudflared service install
+```
+
+> **🤖 Agent Tip:** Just say *"Set up a Cloudflare Tunnel for my API subdomain"* — Saturday will install cloudflared, create the tunnel, add the DNS route, and enable the systemd service.
 
 ---
 
@@ -416,37 +437,30 @@ Saturday will create the script and cron job for you.
 
 > **🤖 Agent Tip:** Just say *"Clean up my server and free up RAM"* — Saturday will remove unused services, tune MariaDB, and optimize everything automatically.
 
-### 5.1 Remove Unused PHP Versions
+### 5.1 PHP & MariaDB (Legacy — removed in 2026-09 reinstall)
 
-> **✅ as of 2026-06-26:** PHP-FPM services are currently not active. The PHP versions 5.6–8.5 remain installed but no FPM service is running. If you need PHP again, start the specific version's FPM service.
-
-If you need to disable unused PHP-FPM versions in the future:
-
-```bash
-# Disable PHP 8.4 and 8.5 FPM if not needed
-sudo systemctl stop php8.4-fpm php8.5-fpm
-sudo systemctl disable php8.4-fpm php8.5-fpm
-
-# Keep only 8.3 running
-sudo systemctl restart php8.3-fpm
-```
+> **✅ as of 2026-09-04:** The current server runs **no PHP and no MariaDB** — both were dropped during the OS reinstall (services moved to Cloudflare Workers/D1 and the Telegram bridge). This section remains for reference on the old box.
 
 ### 5.2 Remove Unnecessary Services
 
-> **✅ as of 2026-06-26:** ModemManager, multipathd, bind9, and fwupd have been removed/stopped. udisks2 is still running but safe to remove on a headless VPS.
+> **✅ as of 2026-09-04:** fwupd and udisks2 are fully inactive on the current server. ModemManager/bind9 are not installed. The only remaining removable service is `multipathd` (single-disk VM).
 
 ```bash
-# Firmware updates not needed on a VPS (no physical hardware)
-sudo systemctl stop fwupd
-sudo systemctl disable fwupd
-sudo apt remove -y fwupd
+# Single disk, no multipath needed (still running post-reinstall)
+sudo systemctl stop multipathd
+sudo systemctl disable multipathd
 
 # Disk management daemon (desktop-only, not needed on headless VPS)
 sudo systemctl stop udisks2
 sudo systemctl disable udisks2
+
+# Firmware updates not needed on a VPS (no physical hardware)
+sudo systemctl stop fwupd
+sudo systemctl disable fwupd
+sudo apt remove -y fwupd
 ```
 
-### 5.3 Tune MariaDB for Low Memory
+### 5.3 Tune MariaDB for Low Memory (legacy)
 
 ```bash
 sudo nano /etc/mysql/conf.d/low-memory.cnf
@@ -470,49 +484,47 @@ sudo systemctl restart mariadb
 
 | Action | RAM Saved | Status |
 |--------|-----------|--------|
-| Remove old PHP-FPM | ~90MB | ⚠️ Not running (already stopped) |
+| Remove old PHP-FPM | ~90MB | ✅ N/A (no PHP post-2026-09 reinstall) |
 | Remove ModemManager | ~10MB | ✅ Done |
-| Remove multipathd | ~5MB | ✅ Done |
+| Remove multipathd | ~5MB | ⚠️ Still running (removable) |
 | Remove bind9 | ~15MB | ✅ Done |
-| Remove fwupd | ~15MB | ✅ Done |
-| Remove udisks2 | ~10MB | ⚠️ Still running |
-| Tune MariaDB | ~20MB | ✅ Done |
-| **Total** | **~165MB** | **~140MB saved so far** |
+| Remove fwupd | ~15MB | ✅ Done (inactive) |
+| Remove udisks2 | ~10MB | ✅ Done (inactive) |
+| Tune MariaDB | ~20MB | ✅ N/A (no MariaDB post-2026-09 reinstall) |
+| **Total** | **~165MB** | **Server now runs a lean headless stack** |
 
 ---
 
 ## 6. Install Development Tools
 
-> **🤖 Agent Tip:** Just say *"Install all development tools — Node.js, pnpm, Bun, PM2, TypeScript, Wrangler, and GitHub CLI"* — Saturday will install and configure everything.
+> **🤖 Agent Tip:** Just say *"Install all development tools — Node.js, PM2, pnpm, Wrangler, Claude Code, Codex CLI, and GitHub CLI"* — Saturday will install and configure everything.
 
 ### 6.1 Node.js Ecosystem
 
 ```bash
-# pnpm (fast package manager)
+# pnpm (fast package manager) — NOT INSTALLED (npm used instead post-2026-09 reinstall)
 npm install -g pnpm
 
 # Bun (fast JS runtime) — NOT INSTALLED
 # Install when needed:
 # curl -fsSL https://bun.sh/install | bash
 
-# PM2 (process manager)
+# PM2 (process manager) ✅ INSTALLED (7.0.1)
 npm install -g pm2
 
-# TypeScript
-pnpm add -g typescript
+# TypeScript — NOT INSTALLED (not needed for current projects)
+# pnpm add -g typescript
 
-# Wrangler (Cloudflare CLI)
-pnpm add -g wrangler
+# Wrangler (Cloudflare CLI) ✅ INSTALLED (4.105.0)
+# pnpm add -g wrangler
 
-# Docker (container runtime) — NOT INSTALLED
+# Docker (container runtime) ✅ INSTALLED (29.7.2, no containers currently running)
 # sudo apt install -y docker.io docker-compose-v2
 # sudo usermod -aG docker $USER
 
-# opencode-ai (AI coding assistant) — NOT INSTALLED
-# npm install -g opencode-ai
-
-# Supabase CLI (local development & migrations)
-npm install -g supabase
+# AI coding CLIs ✅ INSTALLED — primary coding agents on this server
+npm install -g @anthropic-ai/claude-code   # Claude Code 2.1.195
+npm install -g @openai/codex               # Codex CLI 0.144.1
 ```
 
 ### 6.2 GitHub CLI
@@ -986,7 +998,7 @@ chmod +x ~/.hermes/scripts/greeting.sh
 # Target: Telegram → NH Prince Pranhan
 ```
 
-### 10.3 Active Cron Jobs (As of 2026-06-26)
+### 10.3 Active Cron Jobs (As of 2026-09-04)
 
 The following Hermes cron jobs are currently active on this server:
 
@@ -994,6 +1006,8 @@ The following Hermes cron jobs are currently active on this server:
 |-----|----------|-------------|
 | **Daily Morning Greeting** | `0 2 * * *` (UTC) | Sends a rotating morning greeting to Telegram |
 | **Weekly Server Guide Update** | `0 4 * * 5` (Fri) | Auto-updates this guide and pushes to GitHub |
+
+> ⚠️ **Known issue (Sep 2026):** Both jobs' last runs failed with `HTTP 429: Provider returned error` — the scheduled provider (OpenRouter free tier) is rate-limited. If greetings stop arriving, tell Saturday to switch the cron job's provider/model to a non-rate-limited one.
 
 > 📝 The "Refresh OpenRouter Free Models" daily cron job has been removed. Free model fallbacks are now managed manually or via the `hermes model` command when needed.
 
@@ -1200,23 +1214,24 @@ Apply at [education.github.com/pack](https://education.github.com/pack) — it's
 
 | Resource | Value |
 |----------|-------|
-| **OS** | Ubuntu 24.04.4 LTS (Noble Numbat) |
-| **Kernel** | 6.17.0-1017-azure |
-| **CPU** | 2 vCPU (AMD EPYC 7763) |
-| **RAM** | 842MB |
-| **Disk** | 29GB SSD (18G used / 11G free as of 2026-06-26) |
-| **Swap** | 4.0GB (397MB used) |
+| **OS** | Ubuntu 22.04.5 LTS (Jammy Jellyfish) |
+| **Kernel** | 6.8.0-1059-azure |
+| **CPU** | 2 vCPU (AMD EPYC) |
+| **RAM** | 898MB |
+| **Disk** | 62GB SSD (49G used / 13G free, 80% as of 2026-09-04) |
+| **Swap** | 4.0GB (3.0GB used) |
 | **Provider** | Microsoft Azure (Azure for Students) |
-| **Control Panel** | HestiaCP (iptables rules loaded; panel not actively running) |
-| **Web Server** | nginx 1.31.2 |
-| **Database** | MariaDB 11.4.12 |
-| **PHP** | 8.3, 8.4, 8.5 installed (no FPM active) |
-| **Node.js** | 22.22.3 LTS |
-| **pnpm** | 11.5.2 |
+| **Control Panel** | None (HestiaCP removed in 2026-09 reinstall) |
+| **Web Server** | nginx 1.18.0 + Cloudflare Tunnel (cloudflared 2026.8.2) |
+| **Database** | None locally (Cloudflare D1 at edge) |
+| **PHP** | Not installed |
+| **Node.js** | 22.23.2 LTS |
 | **PM2** | 7.0.1 |
-| **Wrangler** | 4.98.0 |
-| **GitHub CLI** | 2.93.0 |
-| **Hermes Agent** | 0.17.0 (2026.6.19) | ✅ Updated |\n| **AI Assistant** | Saturday (Hermes Agent via OpenRouter) | ✅ Active |\n| **Model** | openrouter/owl-alpha | ✅ Primary |\n| **Fallback Models** | google/gemma-4-31b-it:free | ✅ Configured |
+| **Wrangler** | 4.105.0 |
+| **GitHub CLI** | 2.97.0 |
+| **Hermes Agent** | 0.17.0 (2026.6.19) |
+| **AI Assistant** | Saturday (Hermes Agent — NVIDIA NIM primary, OpenRouter fallback) |
+| **Model** | moonshotai/kimi-k3 |
 
 ## 🔗 Useful Links
 
@@ -1232,50 +1247,50 @@ Apply at [education.github.com/pack](https://education.github.com/pack) — it's
 
 > This section is auto-updated weekly to reflect the actual state of the server.
 
-### Active Services (As of 2026-07-10)
+### Active Services (As of 2026-09-04)
 
 | Service | Status | Purpose |
 |---------|--------|---------|
 | nginx | ✅ Running | Web server (port 80/443) |
-| MariaDB | ✅ Running | Database server |
-| fail2ban | ✅ Running | SSH brute-force protection |
+| cloudflared | ✅ Running | Cloudflare Tunnel — exposes bridge/origin APIs |
 | chrony | ✅ Running | NTP time sync |
 | sshd | ✅ Running | Remote access |
 | cron | ✅ Running | Scheduled tasks |
-| Hermes Gateway | ✅ Running | AI agent gateway (PID 2343034) |
-| telegram-bridge | ✅ Running | Telegram Bridge API (port 9000) |
-| udisks2 | ⚠️ Running | Disk management (safe to remove — desktop-only) |
+| docker + containerd | ✅ Running | Container runtime (no containers currently running) |
+| Hermes Gateway | ✅ Running | AI agent gateway (systemd user service) |
+| telegram-bridge | ✅ Running | Telegram Bridge API (uvicorn, up 3+ weeks) |
 | unattended-upgrades | ✅ Running | Automatic security updates |
+| multipathd | ⚠️ Running | Safe to remove (single disk) |
+| fail2ban | ❌ Not running | Optional on this box (SSH key-only auth) |
 
 ### nginx Virtual Hosts
 
 | Domain | Purpose |
 |--------|---------|
-| `bridge-api.nhprince.dpdns.org` | Telegram Bridge API (reverse proxy to localhost:9000) |
-| `origin-api.nhprince.dpdns.org` | Origin API (certbot/webroot) |
+| `origin-api.nhprinceprodhan.dpdns.org` | Origin API (served via Cloudflare Tunnel) |
+| `bridge-api.nhprinceprodhan.dpdns.org` | Telegram Bridge API (reverse proxy to bridge) |
+| `*.nhprinceprodhan.dpdns.org` | Wildcard catch-all |
 
-> **Note:** Previous vhosts (cp.stuckstudio.qzz.io, panel.stuckstudio.qzz.io, stuckstudio.qzz.io, gssclibrary.*) have been removed. The server now focuses on bridge/API services.
+> **Note:** All old `stuckstudio.qzz.io` / `cp.*` / `panel.*` vhosts are gone after the 2026-09 OS reinstall. Public access is via Cloudflare Tunnel — no inbound ports need to be open besides SSH.
 
 ### Hermes Agent Configuration
 
 | Setting | Value |
 |---------|-------|
-| **Model** | openrouter/owl-alpha |
+| **Model** | moonshotai/kimi-k3 (NVIDIA NIM) |
 | **Gateway** | Running (systemd user service) |
-| **Active Sessions** | 6 |
-| **Scheduled Jobs** | 2 active recurring jobs |
-| **Messaging** | Telegram ✓, WhatsApp ✓, Slack ✓, Email ✓ |
-| **Fallback Models** | 1 configured (google/gemma-4-31b-it:free) |
-| **Personalities** | 14 (helpful, concise, technical, creative, teacher, kawaii, catgirl, pirate, shakespeare, surfer, noir, uwu, philosopher, hype) |
-| **API Keys Active** | OpenRouter ✓, Google/Gemini ✓, xAI/Grok ✓ |
+| **Scheduled Jobs** | 2 active (Daily Greeting, Weekly Server Guide Update) |
+| **Messaging** | Telegram ✓ (primary), WhatsApp bridge via telegram-bridge stack |
+| **API Keys Active** | OpenRouter ✓, Google/Gemini ✓, xAI/Grok ✓, NVIDIA NIM ✓ |
+| **AI Coding CLIs** | Claude Code 2.1.195, OpenAI Codex 0.144.1 (both npm-global) |
 
 ### Disk Usage
 
 ```
-/dev/root  29G  18G  11G  64% /
+/dev/root  62G  49G  13G  80% /
 ```
 
-> ✅ **Disk usage improved from 93% → 64%** after cleanup (June 22, 2026). 11GB free. Server is healthy.
+> ⚠️ **80% disk usage** on the new 62GB volume. 13GB free. If it climbs, clean Docker images (`docker system prune`), npm caches, and old logs.
 
 ---
 
@@ -1508,4 +1523,4 @@ This guide and the entire setup were built by:
 | Telegram + WhatsApp | Messaging platforms |
 
 > 📝 **This guide is auto-updated every Friday by Saturday (Hermes Agent).**
-> Last auto-update: 2026-06-26
+> Last auto-update: 2026-09-04
