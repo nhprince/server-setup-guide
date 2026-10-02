@@ -11,7 +11,7 @@ Designed so that **anyone** can follow along and replicate the entire setup — 
 > 📌 **Quick Info**
 > - **Author:** Prince (NH Prince Pradhan)
 > - **Maintained by:** Saturday (Hermes Agent) — auto-updated weekly
-> - **Last Updated:** 2026-09-04
+> - **Last Updated:** 2026-10-02
 > - **Server:** Azure VM (2 vCPU, 898MB RAM, 62GB SSD) — Ubuntu 22.04.5 LTS
 > - **Domains:** origin-api / bridge-api at `*.nhprinceprodhan.dpdns.org` (Cloudflare Tunnel)
 
@@ -1218,8 +1218,8 @@ Apply at [education.github.com/pack](https://education.github.com/pack) — it's
 | **Kernel** | 6.8.0-1059-azure |
 | **CPU** | 2 vCPU (AMD EPYC) |
 | **RAM** | 898MB |
-| **Disk** | 62GB SSD (49G used / 13G free, 80% as of 2026-09-04) |
-| **Swap** | 4.0GB (3.0GB used) |
+| **Disk** | 62GB SSD (50G used / 12G free, 81% as of 2026-10-02) |
+| **Swap** | 4.0GB (~2.0GB used) |
 | **Provider** | Microsoft Azure (Azure for Students) |
 | **Control Panel** | None (HestiaCP removed in 2026-09 reinstall) |
 | **Web Server** | nginx 1.18.0 + Cloudflare Tunnel (cloudflared 2026.8.2) |
@@ -1229,9 +1229,12 @@ Apply at [education.github.com/pack](https://education.github.com/pack) — it's
 | **PM2** | 7.0.1 |
 | **Wrangler** | 4.105.0 |
 | **GitHub CLI** | 2.97.0 |
-| **Hermes Agent** | 0.17.0 (2026.6.19) |
+| **Hermes Agent** | 0.17.0 (2026.6.19, upstream 63279301 + local patches) |
 | **AI Assistant** | Saturday (Hermes Agent — NVIDIA NIM primary, OpenRouter fallback) |
 | **Model** | moonshotai/kimi-k3 |
+| **Python** | 3.12.13 (Hermes venv) |
+| **AI Coding CLIs** | Claude Code 2.1.195, OpenAI Codex CLI 0.144.1 |
+| **Uptime** | 96+ days (as of 2026-10-02) |
 
 ## 🔗 Useful Links
 
@@ -1247,21 +1250,24 @@ Apply at [education.github.com/pack](https://education.github.com/pack) — it's
 
 > This section is auto-updated weekly to reflect the actual state of the server.
 
-### Active Services (As of 2026-09-04)
+### Active Services (As of 2026-10-02)
 
 | Service | Status | Purpose |
 |---------|--------|---------|
 | nginx | ✅ Running | Web server (port 80/443) |
-| cloudflared | ✅ Running | Cloudflare Tunnel — exposes bridge/origin APIs |
+| cloudflared | ✅ Running | Cloudflare Tunnel 2026.8.2 — exposes bridge/origin APIs |
 | chrony | ✅ Running | NTP time sync |
 | sshd | ✅ Running | Remote access |
 | cron | ✅ Running | Scheduled tasks |
 | docker + containerd | ✅ Running | Container runtime (no containers currently running) |
-| Hermes Gateway | ✅ Running | AI agent gateway (systemd user service) |
-| telegram-bridge | ✅ Running | Telegram Bridge API (uvicorn, up 3+ weeks) |
+| Hermes Gateway | ✅ Running | AI agent gateway (Hermes-managed scheduler/cron) |
+| telegram-bridge | ✅ Running | Telegram Bridge API (systemd, multi-week uptime) |
 | unattended-upgrades | ✅ Running | Automatic security updates |
 | multipathd | ⚠️ Running | Safe to remove (single disk) |
+| packagekit / polkit / snapd | ⚠️ Running | Ubuntu defaults — removable for RAM savings |
 | fail2ban | ❌ Not running | Optional on this box (SSH key-only auth) |
+
+> **💡 Agent Tip:** Server has been up **96+ days** with zero manual intervention. For extra free RAM on an 898MB box, say *"Disable snapd, packagekit, and multipathd to free memory"* — Saturday will stop/mask them safely. That typically frees 50–100MB.
 
 ### nginx Virtual Hosts
 
@@ -1279,7 +1285,7 @@ Apply at [education.github.com/pack](https://education.github.com/pack) — it's
 |---------|-------|
 | **Model** | moonshotai/kimi-k3 (NVIDIA NIM) |
 | **Gateway** | Running (systemd user service) |
-| **Scheduled Jobs** | 2 active (Daily Greeting, Weekly Server Guide Update) |
+| **Scheduled Jobs** | 2 active (Daily Greeting, Weekly Server Guide Update — via `~/.hermes/cron/jobs.json`) |
 | **Messaging** | Telegram ✓ (primary), WhatsApp bridge via telegram-bridge stack |
 | **API Keys Active** | OpenRouter ✓, Google/Gemini ✓, xAI/Grok ✓, NVIDIA NIM ✓ |
 | **AI Coding CLIs** | Claude Code 2.1.195, OpenAI Codex 0.144.1 (both npm-global) |
@@ -1287,10 +1293,12 @@ Apply at [education.github.com/pack](https://education.github.com/pack) — it's
 ### Disk Usage
 
 ```
-/dev/root  62G  49G  13G  80% /
+/dev/root  62G  50G  12G  81% /
 ```
 
-> ⚠️ **80% disk usage** on the new 62GB volume. 13GB free. If it climbs, clean Docker images (`docker system prune`), npm caches, and old logs.
+> ⚠️ **81% disk usage** on the 62GB volume. Only 12GB free. Clean aggressively: `docker system prune -a`, `npm cache clean --force`, `journalctl --vacuum-size=100M`, and old PM2/Hermes logs. Consider moving large caches to R2.
+
+> **💡 Agent Tip:** Say *"Free up disk space on my server"* — Saturday will prune Docker, clean npm/pip caches, rotate logs, and report reclaimed space.
 
 ---
 
