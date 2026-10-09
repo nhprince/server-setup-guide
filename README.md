@@ -11,7 +11,7 @@ Designed so that **anyone** can follow along and replicate the entire setup — 
 > 📌 **Quick Info**
 > - **Author:** Prince (NH Prince Pradhan)
 > - **Maintained by:** Saturday (Hermes Agent) — auto-updated weekly
-> - **Last Updated:** 2026-10-02
+> - **Last Updated:** 2026-10-09
 > - **Server:** Azure VM (2 vCPU, 898MB RAM, 62GB SSD) — Ubuntu 22.04.5 LTS
 > - **Domains:** origin-api / bridge-api at `*.nhprinceprodhan.dpdns.org` (Cloudflare Tunnel)
 
@@ -1004,10 +1004,10 @@ The following Hermes cron jobs are currently active on this server:
 
 | Job | Schedule | Description |
 |-----|----------|-------------|
-| **Daily Morning Greeting** | `0 2 * * *` (UTC) | Sends a rotating morning greeting to Telegram |
+| **Daily Morning Greeting** | `0 2 * * *` (UTC) | Sends a rotating morning greeting to Telegram (124 runs completed) |
 | **Weekly Server Guide Update** | `0 4 * * 5` (Fri) | Auto-updates this guide and pushes to GitHub |
 
-> ⚠️ **Known issue (Sep 2026):** Both jobs' last runs failed with `HTTP 429: Provider returned error` — the scheduled provider (OpenRouter free tier) is rate-limited. If greetings stop arriving, tell Saturday to switch the cron job's provider/model to a non-rate-limited one.
+> ⚠️ **Known issue (Oct 2026):** Still present — the Daily Morning Greeting's last run (`2026-10-09T02:32Z`) failed with `HTTP 429: Provider returned error` on the provider free tier. The greeting has failed for multiple consecutive weeks. Fix: tell Saturday *"switch the cron job's provider/model to NVIDIA NIM or another non-rate-limited provider"*. The Refresh OpenRouter Free Models job remains paused (last successful run 2026-06-13).
 
 > 📝 The "Refresh OpenRouter Free Models" daily cron job has been removed. Free model fallbacks are now managed manually or via the `hermes model` command when needed.
 
@@ -1218,8 +1218,8 @@ Apply at [education.github.com/pack](https://education.github.com/pack) — it's
 | **Kernel** | 6.8.0-1059-azure |
 | **CPU** | 2 vCPU (AMD EPYC) |
 | **RAM** | 898MB |
-| **Disk** | 62GB SSD (50G used / 12G free, 81% as of 2026-10-02) |
-| **Swap** | 4.0GB (~2.0GB used) |
+| **Disk** | 62GB SSD (50G used / 12G free, 81% as of 2026-10-09) |
+| **Swap** | 4.0GB (~1.5GB used) |
 | **Provider** | Microsoft Azure (Azure for Students) |
 | **Control Panel** | None (HestiaCP removed in 2026-09 reinstall) |
 | **Web Server** | nginx 1.18.0 + Cloudflare Tunnel (cloudflared 2026.8.2) |
@@ -1234,7 +1234,7 @@ Apply at [education.github.com/pack](https://education.github.com/pack) — it's
 | **Model** | moonshotai/kimi-k3 |
 | **Python** | 3.12.13 (Hermes venv) |
 | **AI Coding CLIs** | Claude Code 2.1.195, OpenAI Codex CLI 0.144.1 |
-| **Uptime** | 96+ days (as of 2026-10-02) |
+| **Uptime** | 103+ days (as of 2026-10-09) |
 
 ## 🔗 Useful Links
 
@@ -1250,7 +1250,7 @@ Apply at [education.github.com/pack](https://education.github.com/pack) — it's
 
 > This section is auto-updated weekly to reflect the actual state of the server.
 
-### Active Services (As of 2026-10-02)
+### Active Services (As of 2026-10-09)
 
 | Service | Status | Purpose |
 |---------|--------|---------|
@@ -1260,14 +1260,14 @@ Apply at [education.github.com/pack](https://education.github.com/pack) — it's
 | sshd | ✅ Running | Remote access |
 | cron | ✅ Running | Scheduled tasks |
 | docker + containerd | ✅ Running | Container runtime (no containers currently running) |
-| Hermes Gateway | ✅ Running | AI agent gateway (Hermes-managed scheduler/cron) |
+| Hermes Gateway | ⚠️ Inactive (systemd service dead) | AI agent gateway — note: this cron run executed outside the gateway-managed model route; investigate `sudo systemctl restart hermes-gateway` if chat stops working |
 | telegram-bridge | ✅ Running | Telegram Bridge API (systemd, multi-week uptime) |
 | unattended-upgrades | ✅ Running | Automatic security updates |
 | multipathd | ⚠️ Running | Safe to remove (single disk) |
 | packagekit / polkit / snapd | ⚠️ Running | Ubuntu defaults — removable for RAM savings |
 | fail2ban | ❌ Not running | Optional on this box (SSH key-only auth) |
 
-> **💡 Agent Tip:** Server has been up **96+ days** with zero manual intervention. For extra free RAM on an 898MB box, say *"Disable snapd, packagekit, and multipathd to free memory"* — Saturday will stop/mask them safely. That typically frees 50–100MB.
+> **💡 Agent Tip:** Server has been up **103+ days** with zero manual intervention. For extra free RAM on an 898MB box, say *"Disable snapd, packagekit, and multipathd to free memory"* — Saturday will stop/mask them safely. That typically frees 50–100MB.
 
 ### nginx Virtual Hosts
 
@@ -1296,7 +1296,7 @@ Apply at [education.github.com/pack](https://education.github.com/pack) — it's
 /dev/root  62G  50G  12G  81% /
 ```
 
-> ⚠️ **81% disk usage** on the 62GB volume. Only 12GB free. Clean aggressively: `docker system prune -a`, `npm cache clean --force`, `journalctl --vacuum-size=100M`, and old PM2/Hermes logs. Consider moving large caches to R2.
+> ⚠️ **81% disk usage** on the 62GB volume. Only 12GB free (unchanged since 2026-10-02 — no growth, but still tight). Clean aggressively: `docker system prune -a`, `npm cache clean --force`, `journalctl --vacuum-size=100M`, and old PM2/Hermes logs. Consider moving large caches to R2.
 
 > **💡 Agent Tip:** Say *"Free up disk space on my server"* — Saturday will prune Docker, clean npm/pip caches, rotate logs, and report reclaimed space.
 
@@ -1531,4 +1531,4 @@ This guide and the entire setup were built by:
 | Telegram + WhatsApp | Messaging platforms |
 
 > 📝 **This guide is auto-updated every Friday by Saturday (Hermes Agent).**
-> Last auto-update: 2026-09-04
+> Last auto-update: 2026-10-09
